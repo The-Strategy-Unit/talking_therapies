@@ -55,8 +55,7 @@ load_gantt_data <- function(download_fresh = FALSE, actions = FALSE) {
       # flag rows where 'milestone' appears in actions
       flag_milestone = actions |>
         stringr::str_to_lower() |>
-        stringr::str_detect(pattern = "milestone"),
-
+        stringr::str_detect(pattern = "milestone|annual leave"),
       # copy these to a new column
       milestone = dplyr::case_when(flag_milestone ~ actions)
     ) |>
@@ -185,7 +184,6 @@ plot_gantt <- function(
         ),
         colour = "white",
         hjust = 0.5,
-        family = "Arial Narrow",
         bg.color = adjustcolor(col = "black", alpha.f = 0.05)
       )
   }
@@ -216,7 +214,7 @@ plot_gantt <- function(
   # add in plot themes
   plot <-
     plot +
-    ggplot2::theme_minimal(base_family = "Arial Narrow") +
+    ggplot2::theme_minimal(base_size = 16) +
     ggplot2::theme(
       legend.position = "none",
       axis.title = ggplot2::element_blank(),
