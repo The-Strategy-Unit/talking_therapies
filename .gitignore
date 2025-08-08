@@ -86,3 +86,13 @@ venv.bak/
 
 # Rendered output files
 *.html
+
+# Data files to ignore
+data/reference/IAPT_v_2.1_Enhanced_Technical_Output_Specification_v2.1.22.xlsx
+data/reference/NHSTalkingTherapies+Monthly+Metadata+20250522.xlsx
+*_copy.xlsx
+*.pdf
+
+# Outputs to ignore
+*.docx
+
