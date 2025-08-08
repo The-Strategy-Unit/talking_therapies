@@ -1,0 +1,130 @@
+---
+title: "NHS Talking Therapies"
+subtitle: "Project plan"
+author: "Craig Parylo"
+date: today
+
+title-block-banner: '#151412'
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    embed-resources: true
+    fig-format: png
+    fig-width: 10
+    fig-height: 3
+    fig-dpi: 600
+    default-image-extension: svg
+    lightbox: true
+    editor: visual
+    favicon: "favicon.ico"
+    include-in-header:
+      text: |
+        <link rel="icon" type="image/x-icon" href="favicon.ico">
+brand: _brand.yml
+css: styles.css
+bibliography: references.bib
+---
+
+```{r setup}
+#| include: false
+
+# source scripts containing useful functions
+source(here::here('scripts', 'utility_functions.R'))
+source(here::here('scripts', 'update_project_plan.R'))
+
+# set up font data
+#extrafont::font_import()
+extrafont::loadfonts(quiet = TRUE)
+
+# NB, periodically manually update the gantt data, remember to authenticate using MLCSU details
+#load_gantt_data(download_fresh = TRUE)
+```
+
+# Project plan
+
+```{r}
+#| fig-height: 5
+
+# load the gantt data
+df_gantt <-
+    load_gantt_data(download_fresh = FALSE) |> 
+    # remove annual leave data
+    dplyr::filter(milestone != "ANNUAL LEAVE")
+
+# plot a summary gantt chart
+p <- 
+    plot_gantt(
+        df = df_gantt,
+        date_units = "4_weeks",
+        milestones_only = TRUE,
+        show_days = TRUE
+    )
+
+p
+```
+
+```{r}
+df_gantt |> 
+    dplyr::filter(!milestone == "ANNUAL LEAVE") |> 
+    dplyr::select(milestone, actions, start, finish) |> 
+    dplyr::summarise(
+        start = min(start, na.rm = TRUE),
+        finish = max(finish, na.rm = TRUE),
+        .by = milestone
+    ) |> 
+    gt::gt() |> 
+    gt::tab_options(quarto.disable_processing = TRUE) |> 
+    gt::cols_label(
+        milestone = "Milestone",
+        start = "Expected start",
+        finish = "Expected finish"
+    ) |> 
+    gt::fmt_date(
+        columns = c(start, finish),
+        date_style = "MMMEd"
+    )
+```
+
+### Set-up
+
+The initial phase focuses on beginning work on the Data Protection Impact Assessment (DPIA). This includes establishing the framework for assessing data protection risks, agreeing on the scope of the assessment, and finalising contracts to ensure all legal agreements are in place before proceeding.
+
+### Scoping
+
+During the scoping phase, we will identify relevant projects that have implemented the intervention of interest. This typically involves determining potential matching and outcome variables, conducting document reviews from each site to gather necessary information.
+
+### First project report
+
+An interim report will be prioriti2ed for completion by mid-September. This report will summarize the quantitative analysis and, depending on DPIA approval and time constraints, may also include qualitative analysis. This interim output will provide valuable insights into this project's evaluative approach and progress.
+
+### Evaluation framework
+
+The evaluation framework will serve as a comprehensive document summarising the overall evaluation approach. It will include a list of the sites identified for assessment and outline recommended methods for both quantitative and qualitative assessments.
+
+### Set-up and interviews
+
+In preparation for qualitative fieldwork, the team will develop materials such as participant information sheets and topic guides. Additionally, scheduling interviews with participants will be a crucial part of this step, ensuring that the necessary qualitative data can be collected effectively.
+
+### Quantitative analysis
+
+This milestone will include conducting interviews with participants, transcribing those interviews for analysis, and coding the transcriptions to identify key themes and insights. This qualitative data will complement the quantitative findings and provide a richer understanding of the intervention's impact.
+
+### Qualitative analysis
+
+This milestone includes time for conducting interviews, interview transcriptions and coding.
+
+### Reporting
+
+Finally, the reporting phase will encompass the development of a content plan that outlines the structure and content of the final report. The formal write-up will document both qualitative and quantitative approaches, and if possible, triangulate the findings to integrate insights from different data sources. Revisions will be made to finalise the summary report and any additional outputs, such as presentations or infographics.
+
+This structured approach ensures that all aspects of the project are thoroughly addressed, leading to a comprehensive evaluation and reporting process.
+
+::: {.callout-caution appearance="minimal"}
+## Caution
+
+The project plan outlined in this report is based on current knowledge, resources and timelines. However, it is important to note that actual completions may differ due to unforeseen circumstances, including but not limited to changes in project scope, resource availability, external factors and other variables beyond our control.
+
+While we strive to adhere to the proposed timelines and objectives, we cannot guarantee that all actions will be completed as planned. We will monitor progress and make necessary adjustments to ensure the best possible outcomes.
+:::
