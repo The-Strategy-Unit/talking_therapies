@@ -95,4 +95,5 @@ data/reference/NHSTalkingTherapies+Monthly+Metadata+20250522.xlsx
 
 # Outputs to ignore
 *.docx
+*.pptx
 
