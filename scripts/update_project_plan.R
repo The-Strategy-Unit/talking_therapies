@@ -135,9 +135,6 @@ plot_gantt <- function(
       )
   }
 
-  # dplyr::glimpse(df)
-  # df |> View()
-
   # plot
   if (milestones_only) {
     plot <-
