@@ -99,3 +99,4 @@ data/reference/NHSTalkingTherapies+Monthly+Metadata+20250522.xlsx
 
 # Temporary files that don't require version controlling
 scripts/scratchpad.R
+outputs/images/dqmi_2025_05.svg
