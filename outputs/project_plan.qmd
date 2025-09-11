@@ -42,6 +42,8 @@ extrafont::loadfonts(quiet = TRUE)
 #load_gantt_data(download_fresh = TRUE)
 ```
 
+This file contains a high-level summary project plan for the evaluation of interventions to improve adherence in NHS Talking Therapies.
+
 # Project plan
 
 ```{r}
@@ -87,6 +89,7 @@ df_gantt |>
     )
 ```
 
+## Milestone descriptions
 ### Set-up
 
 The initial phase focuses on beginning work on the Data Protection Impact Assessment (DPIA). This includes establishing the framework for assessing data protection risks, agreeing on the scope of the assessment, and finalising contracts to ensure all legal agreements are in place before proceeding.
