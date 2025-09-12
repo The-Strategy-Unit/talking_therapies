@@ -146,3 +146,30 @@ get_su_lakemart_parquet_file <- function(str_file_pattern = "") {
   # return the df
   return(df_return)
 }
+
+#' Read an open Excel file
+#'
+#' Reads an open Excel file to a data frame avoiding issues
+#' caused by Excel file locking.
+#'
+#' @param path File path to the excel file
+#' @param sheet String name of the sheet to read (default = "Sheet1")
+#'
+#' @returns Tibble of data
+read_an_open_excel <- function(path, sheet = "Sheet1") {
+  # create a temp file reference
+  path_xl <- withr::local_tempfile()
+
+  # copy the excel file to the temp location
+  fs::file_copy(
+    path = path,
+    new_path = path_xl,
+    overwrite = TRUE
+  )
+
+  # read the file
+  df <- readxl::read_excel(path = path_xl, sheet = sheet)
+
+  # return the df
+  return(df)
+}
