@@ -1,0 +1,1520 @@
+---
+title: "NHS Talking Therapies"
+subtitle: "Evaluation of interventions to improve adherence to therapy in *Talkworks, Devon*"
+author: "Craig Parylo"
+date: today
+
+title-block-banner: '#151412'
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    embed-resources: true
+    fig-format: png
+    fig-width: 10
+    fig-height: 3
+    fig-dpi: 600
+    default-image-extension: svg
+    lightbox: true
+    editor: visual
+    favicon: "favicon.ico"
+    include-in-header:
+      text: |
+        <link rel="icon" type="image/x-icon" href="favicon.ico">
+brand: _brand.yml
+css: styles.css
+execute:
+  cache: true
+#bibliography: references.bib
+---
+
+```{r}
+#| label: setup
+#| context: setup
+#| cache: false
+
+# load in utility functions
+source(here::here('scripts', 'utility_functions.R'))
+
+# reference files ---
+# get a list of projects that have implemented something to improve adherence
+df_intervention_services <- read_an_open_excel(
+  path = here::here('data', 'project', 'tt_intervention_projects_copy.xlsx'),
+  sheet = "intervention_projects"
+)
+
+# get a summary of interventions
+df_interventions <- read_an_open_excel(
+  path = here::here('data', 'project', 'tt_interventions_summary.xlsx'),
+  sheet = 'interventions'
+) |>
+  dplyr::filter(name == "Talkworks, Devon") |>
+  dplyr::mutate(calc_month = zoo::as.yearmon(month))
+
+# load in matching variables
+df <- get_matching_variables()
+
+# load in variable labels
+ls_labels <- get_variable_labels()
+
+```
+
+# Project overview
+
+## Interventions
+
+This service implemented several improvements to patient information designed to better prepare people before they begin therapy.
+
+```{r}
+#| label: List of interventions
+df_interventions |>
+  dplyr::select(month, intervention) |>
+  dplyr::arrange(month) |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::fmt_date(columns = month, date_style = "yMMM") |>
+  gt::cols_label(month = "Month", intervention = "Intervention") |>
+  gt::cols_width(month ~ gt::pct(15)) |>
+  gt::tab_header(
+    title = "Interventions",
+    subtitle = "Changes made by the service to better prepare clients for therapy"
+  )
+```
+
+```{r}
+#| label: Timeline of interventions
+
+# create a df holding details about the timeline
+df_timeline <-
+  df_interventions |>
+  # make fields compatible with {timevis}
+  dplyr::rename(content = intervention_html, start = month) |>
+  # select essential details
+  dplyr::select(content, start)
+
+# display as a timeline
+timevis::timevis(data = df_timeline, showZoom = FALSE)
+
+```
+
+<br> *Timeline view of interventions* <br>
+
+In addition, the service implemented the following changes (without definite start dates, so are not included in this evaluation):
+
+-   Added a [patient and staff testimonial](https://www.talkworks.dpt.nhs.uk/about-us/testimonials) page on the website to help reduce anxiety for people nervous about therapy
+
+-   Began asking self-referred patients who are difficult to contact whether they want to book an assessment, instead of automatically allocating appointments
+
+-   Created a "What to expect from therapy" guide explaining what therapy will look like, how it can be delivered and what to do if someone cannot attend their appointment
+
+## Outcomes
+
+Two outcome measures have been used in this evaluation:
+
+1.  The proportion of discharged referrals where the patient attended five or more treatment sessions
+
+2.  The proportion of discharged referrals that have completed treatment, defined as at least two treatment contacts, but where the patient did not attend at least five treatment sessions.
+
+These measures follow the numerator and denominator definitions, below.
+
++--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Item               | Definition                                                                                                                                                                                                                                                            |
++====================+=======================================================================================================================================================================================================================================================================+
+| Measure            | The proportion of discharged referrals each month where the patient attended five or more treatment sessions.                                                                                                                                                         |
++--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Numerator          | Those in the denominator who attended five or more treatment care contacts during their referral[^1]                                                                                                                                                                  |
++--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Denominator        | Referrals ending each month where the patient was 'seen and taken on for a course of treatment'[^2]                                                                                                                                                                   |
++--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Rationale          | This denominator represents monthly discharges for referrals that began a course of therapy (feasibility testing showed this group is 43% of all IAPT referrals).                                                                                                     |
+|                    |                                                                                                                                                                                                                                                                       |
+|                    | The numerator is the subset who attended at least five treatment contacts. Recent research identifies five sessions as a minimum associated with greater likelihood of achieving reliable recovery, so this group are those more likely to achieve reliable recovery. |
+|                    |                                                                                                                                                                                                                                                                       |
+|                    | This measure therefore captures discharged referrals each month that demonstrate sufficient adherence to have at least 50% likelihood of reliable recovery.                                                                                                           |
++--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Expected variation | We expect this measure to **increase** as a result of interventions that improve adherence with therapy.                                                                                                                                                              |
++--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+: Outcome measure 1
+
+[^1]: This count will be obtained from the field ‘TreatmentCareContact_Count’ (object I101D29) from the table ‘IDS101Referral’
+
+[^2]: Defined as an ‘EndCode’ (object I101250 on the table ‘IDS101Referral’) as either:
+
+    -   46 (mutually agreed completion of treatment),
+
+    -   47 (termination of treatment earlier than Care Professional planned),
+
+    -   48 (termination of treatment earlier than the patient requested),
+
+    -   49 (deceased, seen and taken on for a course of treatment) or
+
+    -   96 (not known, seen and taken on for a course of treatment)
+
+    See <https://digital.nhs.uk/binaries/content/assets/website-assets/isce/dcb1520/1520132021tos.xlsx> \[Accessed 5th September 2025\]
+
++--------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Item               | Description                                                                                                                                                                  |
++====================+==============================================================================================================================================================================+
+| Measure            | The proportion of referrals that have completed a course of therapy but attended fewer than five treatment sessions                                                          |
++--------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Numerator          | Of the denominator, those who attended between 2 and 4 treatment care contacts (inclusive) in total, during their referral                                                   |
++--------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Denominator        | Referrals ending each month where the patient was 'seen and taken on for a course of treatment' and attended at least two treatment sessions.                                |
++--------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Rationale          | This denominator captures monthly discharges who began and completed a course of therapy (IAPT KPI definition: at least two treatment contacts).                             |
+|                    |                                                                                                                                                                              |
+|                    | Research indicates five sessions is the minimum associated with a greater likelihood of reliable recovery, so this group is most likely to benefit from additional sessions. |
+|                    |                                                                                                                                                                              |
+|                    | This measure therefore identifies discharged referrals who completed treatment but would likely improve their chance of reliable recovery by attending more sessions.        |
++--------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Expected variation | We expect this measure to **decrease** as a result of interventions that improve adherence with therapy.                                                                     |
++--------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+: Outcome measure 2
+
+## Matching variables
+
+Since no consensus exists on predictors of therapy adherence, a [literature search](https://github.com/The-Strategy-Unit/talking_therapies/blob/main/data/reference/lit_search.xlsx) identified plausible variables. These were shortlisted based on feasibility of measurement in the IAPT dataset.
+
+The selected factors, listed below, are mostly expressed as proportions of either referrals or care contacts. Aggregating patient-level data into these proportions represents the overall Talking Therapies service and makes the variables more suitable for the matching process.
+
+Outcome measure:
+
+-   Proportion of referrals that have completed treatment, but where the patient did not attend at least five treatment sessions.
+
+Demographic characteristics:
+
+-   Proportion of referrals for people aged 25 years and younger at referral
+
+-   Proportion of referrals for people aged 60 years and older at referral
+
+-   Proportion of referrals for people whose gender identity is female
+
+-   Proportion of referrals for people whose LSOA of residence is among the 20% most deprived in England
+
+-   Proportion of referrals for people whose LSOA of residence is among the 20% least deprived in England
+
+-   Proportion of referrals for people whose broad ethnic background is 'White'
+
+Therapist and service characteristics:
+
+-   Proportion of care contacts where the therapist has attained an NHS TT qualification
+
+-   Proportion of care contacts conducted on hospital premises
+
+-   Proportion of care contacts conducted face-to-face
+
+-   Proportion of care contacts outside of weekdays, 9am to 5pm
+
+-   Proportion of care contacts delivered as internet enabled therapy
+
+-   Proportion of care contacts delivered to an individual patient
+
+-   Proportion of referrals where the referral-to-treatment wait time was within six weeks
+
+-   Proportion of referrals where there was step-up to high-intensity therapy
+
+Language and accessibility:
+
+-   Proportion of care contacts conducted in English
+
+-   Proportion of care contacts conducted with an interpreter present
+
+A draft version of these matching variables was shared by email with members of the NHS Talking Therapies (TT) and Individual Placement and Support (IPS) National Programme Delivery Group for review in July 2025. The list above has since been augmented based on feedback.
+
+## Outcomes for Talkworks, Devon
+
+Talkworks Devon IAPT referral discharges data is available from the beginning of 2022 with the most recent data point being June 2025.
+
+```{r}
+#| label: Devon discharges time series
+#| fig-height: 7
+
+df |>
+  dplyr::filter(
+    ods_code == "RWV", # Talkworks, Devon
+  ) |>
+  ggplot2::ggplot(
+    mapping = ggplot2::aes(
+      x = calc_month,
+      y = o1_denom_discharges_count
+    )
+  ) +
+  # add an arrow and text pointing to start of regular activity
+  ggplot2::annotate(
+    geom = "segment",
+    x = zoo::as.yearmon("Apr 2021"),
+    xend = zoo::as.yearmon("Nov 2021"),
+    y = 900,
+    yend = 900,
+    colour = "#5881c1",
+    arrow = ggplot2::arrow(type = "closed", length = ggplot2::unit(0.2, "cm"))
+  ) +
+  ggplot2::annotate(
+    geom = "text",
+    x = zoo::as.yearmon("Mar 2021"),
+    y = 900,
+    label = "Discharges begin",
+    hjust = 1,
+    colour = "#5881c1"
+  ) +
+  # add in the rest of the plot
+  ggplot2::geom_line() +
+  ggplot2::geom_point() +
+  ggplot2::theme_minimal(base_size = 20) +
+  ggplot2::theme(axis.title.x = ggplot2::element_blank()) +
+  ggplot2::labs(
+    title = "Talkworks, Devon",
+    subtitle = "Referral discharges begin with regular frequency from January 2022",
+    # x = "",
+    y = "Number of discharges"
+  )
+```
+
+Focusing on the period January 2022 to June 2025, the time series for each of the outcome variables is shown below. Each plot includes a trendline in [orange]{style="color: #f9bf07;"} and a dotted line in [blue]{style="color: #5881c1;"} indicating when each of the interventions was started.
+
+```{r}
+#| label: Devon outcome 1
+#| fig-height: 7
+df |>
+  dplyr::filter(
+    ods_code == "RWV",
+    dplyr::between(
+      x = calc_month,
+      left = zoo::as.yearmon("Jan 2022"),
+      right = zoo::as.yearmon("Jun 2025")
+    )
+  ) |>
+  plot_outcomes_over_time(
+    df_interventions = df_interventions,
+    var_outcome = "o1_rate",
+    trendline = TRUE,
+    interventions = TRUE,
+    title = "Talkworks Devon",
+    subtitle = stringr::str_wrap(
+      string = "Outcome 1 shows an overall upward trend between 2022 and 2025",
+      width = 50
+    )
+  )
+```
+
+```{r}
+#| label: Devon outcome 2
+#| fig-height: 7
+df |>
+  dplyr::filter(
+    ods_code == "RWV",
+    dplyr::between(
+      x = calc_month,
+      left = zoo::as.yearmon("Jan 2022"),
+      right = zoo::as.yearmon("Jun 2025")
+    )
+  ) |>
+  plot_outcomes_over_time(
+    df_interventions = df_interventions,
+    var_outcome = "o2_rate",
+    trendline = TRUE,
+    interventions = TRUE,
+    title = "Talkworks Devon",
+    subtitle = stringr::str_wrap(
+      string = "Outcome 2 shows an overall downward trend between 2022 and 2025",
+      width = 50
+    )
+  )
+```
+
+The matching process will use data from the eleven-month period preceding Talkworks Devon's first intervention, specifically from January 2022 to November 2022. This pre-intervention period provides a stable baseline for matching services, ensuring that the comparison is conducted before any intervention effects could potentially influence the data.
+
+# National outcome trends
+
+We will first look at the antional trends for our two outcome measures. Think of the national trajectory as a benchmark: Devon's interventions need to achieve improvements **faster than** this baseline in order to demonstrate measurable impact.
+
+The next two charts include only months in which each services recorded at least 100 discharges. This filter removes unreliable rates that can arise from newly launched services or months with very few discharges.
+
+```{r}
+#| fig-height: 7
+#| label: outcome 1 national trend
+
+# filter the data to make it easier to use
+df_temp <-
+  df |>
+  dplyr::filter(
+    # limit to the start of Devon's activity and exclude latest point
+    dplyr::between(
+      calc_month,
+      zoo::as.yearmon("Jan 2022"),
+      zoo::as.yearmon("May 2025")
+    ),
+    # limit to months where each service has more than 100 discharges to avoid spurious rates
+    o1_denom_discharges_count > 100
+  )
+
+# linear model
+lm_temp <-
+  lm(
+    formula = o1_rate ~ calc_month,
+    data = df_temp
+  )
+# extract as a variable
+rate_per_year <- lm_temp |>
+  broom::tidy() |>
+  dplyr::filter(term == "calc_month") |>
+  dplyr::pull(estimate) |>
+  round(3)
+
+# get average rates per month
+df_summary_per_month <-
+  df_temp |>
+  dplyr::summarise(
+    o1_rate_av = mean(o1_rate, na.rm = TRUE),
+    o1_rate_sd = sd(o1_rate, na.rm = TRUE),
+    o2_rate_av = mean(o2_rate, na.rm = TRUE),
+    o2_rate_sd = sd(o2_rate, na.rm = TRUE),
+    .by = c(calc_month)
+  ) |>
+  dplyr::arrange(calc_month)
+
+# show a spaghetti plot of all TT services over time
+ggplot2::ggplot() +
+  # add traces for each individual TT service
+  ggplot2::geom_line(
+    data = df_temp,
+    mapping = ggplot2::aes(
+      x = calc_month,
+      y = o1_rate,
+      group = ods_code
+    ),
+    colour = adjustcolor("#9d928a", alpha.f = 0.3),
+    linewidth = 0.5
+  ) +
+  # add a ribbon of +/- one sd to show spread
+  ggplot2::geom_ribbon(
+    data = df_summary_per_month,
+    mapping = ggplot2::aes(
+      x = calc_month,
+      ymin = (o1_rate_av - o1_rate_sd),
+      ymax = (o1_rate_av + o1_rate_sd)
+    ),
+    fill = adjustcolor("#f9bf07", alpha.f = 0.2)
+  ) +
+  # add a trendline
+  ggplot2::geom_smooth(
+    data = df_temp,
+    mapping = ggplot2::aes(x = calc_month, y = o1_rate),
+    method = "lm",
+    formula = y ~ x, # made explicit to avoid console messages
+    se = FALSE,
+    colour = adjustcolor("#2c2825", alpha.f = 1),
+    linetype = "dotted"
+  ) +
+  ggplot2::scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +
+  zoo::scale_x_yearmon() +
+  ggplot2::theme_minimal(base_size = 20) +
+  ggplot2::theme(
+    axis.title = ggplot2::element_blank()
+  ) +
+  ggplot2::labs(
+    title = "Outcome 1: discharges with 5+ treatment contacts",
+    subtitle = glue::glue(
+      "National trend since 2022 is upwards at a rate of {rate_per_year * 100}% per year"
+    )
+  )
+```
+
+**What the chart shows:**
+
+-   Each grey line traces a single Talking Therapy service's monthly performance on outcome 1 (percentage of dishcarged referrals that received at least five treatment contacts).
+
+-   The dotted line is a linear regression that captures the overall trend across all services.
+
+-   The yellow band around the dotted line marks ± 1 standard deviation, illustrating the typical spread of service-level rates.
+
+Nationally, the proportion of referrals meeting the 5-contact threshold has risen by around 1.6% per year, climbing from \~57% in Jan 2022 to \~ 62% in May 2025. Monthly results are highly variable; some services approach 100% in certain months, while others fall to near 0%, especially during mid-to-late 2023 when several services achieved 0% in several months.
+
+The upward national trend indicates overall improvement, but the wide dispersion (yellow band) shows that individual services experience very different outcomes, highlighting opportunities for targeted support.
+
+```{r}
+#| fig-height: 7
+#| label: outcome 2 national trend
+#| warning: false
+
+# linear model
+lm_temp <-
+  lm(
+    formula = o2_rate ~ calc_month,
+    data = df_temp
+  )
+# extract as a variable
+rate_per_year <- lm_temp |>
+  broom::tidy() |>
+  dplyr::filter(term == "calc_month") |>
+  dplyr::pull(estimate) |>
+  round(3)
+
+# show a spaghetti plot of all TT services over time
+ggplot2::ggplot() +
+  # add traces for each individual TT service
+  ggplot2::geom_line(
+    data = df_temp,
+    mapping = ggplot2::aes(
+      x = calc_month,
+      y = o2_rate,
+      group = ods_code
+    ),
+    colour = adjustcolor("#9d928a", alpha.f = 0.3),
+    linewidth = 0.5
+  ) +
+  # add a ribbon of +/- one sd to show spread
+  ggplot2::geom_ribbon(
+    data = df_summary_per_month,
+    mapping = ggplot2::aes(
+      x = calc_month,
+      ymin = (o2_rate_av - o2_rate_sd),
+      ymax = (o2_rate_av + o2_rate_sd)
+    ),
+    fill = adjustcolor("#f9bf07", alpha.f = 0.2)
+  ) +
+  # add a trendline
+  ggplot2::geom_smooth(
+    data = df_temp,
+    mapping = ggplot2::aes(x = calc_month, y = o2_rate),
+    method = "lm",
+    formula = y ~ x, # made explicit to avoid console messages
+    se = FALSE,
+    colour = adjustcolor("#2c2825", alpha.f = 1),
+    linetype = "dotted"
+  ) +
+  ggplot2::scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +
+  zoo::scale_x_yearmon() +
+  ggplot2::theme_minimal(base_size = 20) +
+  ggplot2::theme(
+    axis.title = ggplot2::element_blank()
+  ) +
+  ggplot2::labs(
+    title = "Outcome 2: discharges with 2 to 4 treatment contacts",
+    subtitle = glue::glue(
+      "National trend since 2022 is downwards at a rate of {rate_per_year * 100}% per year"
+    )
+  )
+```
+
+**What the chart shows:**
+
+-   Each grey line traces a single Talking Therapy service's monthly performance on outcome 2 (percentage of dishcarged referrals that received between 2 and 4 treatment contacts).
+
+-   The dotted line is a linear regression that captures the overall trend across all services.
+
+-   The yellow band around the dotted line marks ± 1 standard deviation, illustrating the typical spread of service-level rates.
+
+The national share of these referrals has been declining at a rate of 0.9% per year since 2022. Some services report low rates for this outcome each month, indicating most of their completed cases reach the 5-contact threshold. Other services show over 50% of completed referrals falling short of five contacts, highlighting a gap in treatment intensity.
+
+In mid-to-late 2023 a few services recorded 100% of their completed referrals in this category for certain months, underscoring pronounced month-to-month fluctuations.
+
+While the overall picture is improving, the wide spread among individual services suggests targeted interventions are needed to help the higher-percentage providers move more referrals toward the five-contact benchmark.
+
+# Matching
+
+The aim of matching is to pair our intervention Talking Therapies service, Talkworks Devon, with one more untreated services that have similar charactersitics, creating a comparison group that mimics a randomised experiment. This reduces bias and makes it easier to estimat the intervention's effect from observational data.
+
+## Using all matching variables - Nov 2022
+
+The dataset is cut off at November 2022, the month immediately before Devon launched its first intervention - a FAQ page for prospective clients. This pre-intervention slice will serve as the basis for the matching process.
+
+In the initial matching run we include all matching variables and specify five nearest neighbour services. Using several candidates increases the chance of finding one service that meets the parallel-trends assumption.
+
+```{r}
+#| label: matching_all_vars
+#| fig-height: 9
+
+intervention_ods_code <- "RWV"
+
+# prepare the data
+df_prep <-
+  df |>
+  # keep just the variables of interest
+  dplyr::select(
+    c(
+      ods_code,
+      name,
+      calc_month,
+      dplyr::contains("o1_denom"),
+      dplyr::contains("_rate")
+    )
+  ) |>
+  # flag records for the intervention service
+  dplyr::mutate(
+    flag_intervention = ods_code %in% intervention_ods_code
+  ) |>
+  dplyr::filter(
+    # keep services that have activity up to June 2025
+    max(calc_month, na.rm = TRUE) >= zoo::as.yearmon("Jun 2025"),
+    # keep services that have activity in each of the matching yearmonths
+    # all(yearmons_matching %in% calc_month),
+    # exclude other services that have implemented an intervention
+    (ods_code == intervention_ods_code | flag_intervention == 0),
+    .by = ods_code
+  ) |>
+  # shorten the 'o1_denom' variable name
+  dplyr::rename("o1_denom" = o1_denom_discharges_count) |>
+  # limit to just November 2022 data
+  dplyr::filter(calc_month == zoo::as.yearmon("Nov 2022"))
+
+# string wrap variable names to better fit the plot
+ls_labels_wrap <-
+  purrr::modify_if(
+    .x = ls_labels,
+    .p = is.character,
+    .f = ~ stringr::str_wrap(string = .x, width = 50)
+  )
+
+# set the matching formula
+formula_matching <-
+  formula(
+    paste0(
+      "flag_intervention ~ ",
+      paste0(
+        stringr::str_subset(
+          string = names(df_prep),
+          pattern = "^m.*_rate$"
+        ),
+        collapse = " + "
+      )
+    )
+  )
+
+# do the matching
+obj_matches <-
+  MatchIt::matchit(
+    data = df_prep,
+    formula = formula_matching,
+    distance = "glm",
+    method = "nearest",
+    ratio = 5,
+  )
+
+# review the covariate balance
+cobalt::love.plot(
+  x = obj_matches,
+  abs = TRUE,
+  thresholds = 0.1,
+  var.names = ls_labels_wrap,
+  stars = "raw",
+  drop.distance = TRUE
+) +
+  ggplot2::theme_minimal(base_size = 16) +
+  ggplot2::scale_colour_manual(
+    values = c("Unadjusted" = "#ec6555", Adjusted = "#5881c1")
+  )
+
+```
+
+There are three warning messages displayed. The first two warning messages come from the propensity score matching process and likely indicate issues such as perfect separation of the data, or multicollinearity, which break key logistic regression assumptions. The third warning message comes from the process to visualise the model.
+
+Reviewing the data reveals possible causes:
+
+-   M14 Proportion of contacts conducted in English - the asterisk means the 'raw' score is displayed rather than absolute standardised mean differences the rest of the variables are displayed in
+
+-   M16 Proportion of contacts conducted via Internet Enabled Therapy and M17 Proportion of contacts conducted one-to-one both show large standardised differences.
+
+Clearly, using all these matching variables is problematic. Let's investigate further
+
+## Examining matching variables
+
+### Pre-matching assessment
+
+First let us see the level of balance in the matching variables before any matching occurs:
+
+```{r}
+#| label: pre-matching covariate balance
+
+# set the matching formula
+formula_matching <-
+  formula(
+    paste0(
+      "flag_intervention ~ ",
+      paste0(
+        c(
+          stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+          stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+        ),
+        collapse = " + "
+      )
+    )
+  )
+
+# check the balance prior to matching
+set.seed(123)
+match_pre <-
+  MatchIt::matchit(
+    formula = formula_matching,
+    data = df_prep,
+    method = NULL
+    # distance = 'glm'
+  ) |>
+  summary()
+
+t <-
+  match_pre$sum.all |>
+  tibble::as_tibble(rownames = "Matching variable") |>
+  # exclude the distance metric - it isn't very useful here
+  dplyr::filter(`Matching variable` != "distance") |>
+  # drop the var. ratio and std. pair dist measures as they're not useful as the model doens't resolve
+  dplyr::select(-c(`Var. Ratio`, `Std. Pair Dist.`)) |>
+  gt::gt() |>
+  gt::fmt_number(
+    columns = gt::everything(),
+    decimals = 4
+  ) |>
+  gt::data_color(
+    columns = c(`Std. Mean Diff.`),
+    method = "numeric",
+    palette = "#f5b2aa",
+    rows = abs(`Std. Mean Diff.`) < 0.1
+  ) |>
+  gt::tab_options(quarto.disable_processing = TRUE)
+t
+```
+
+This table lists each matching variable together with its average value for Talkworks Devon (the treated group) and for all other donor services (the control group).
+
+Our goal is to identify variables that show large differences, because those are the ones that the matching process can potentially improve. Variables with a standardised mean difference less than 0.1 are highlighted in pink. Variables which are uncoloured indicate where we could increase similarity between the treated and control groups.
+
+Variables with less than 0.1 difference are less promising for improvement. In this case, `m2_rate` (Proportion of discharges for people aged under 26 years at referral) and `m14_rate` (M14 Proportion of contacts conducted in English).
+
+Recommendation: drop `m2_rate` and `m14_rate` from the matching process as there is little scope to improve balance on these variables.
+
+### Multicollinearity
+
+Multicollinearity occurs when two or more matching variables are highly linearly related. Because such variables convey overlapping information, the matching process struggles to calculate reliable propensity scores.
+
+In this section we identify strongly related matching variables using the Variance Inflation Factor (VIF). VIF measures how much a variable is linearly related to the others; higher values indicate stronger multicollinearity.
+
+-   A VIF between 5 and 10 is often considered a warning sign. In the table below these are highlighted in yellow.
+-   A VIF greater than 10 is strongly signals multicollinearity. Variables with such high VIF values should be excluded from the model. In the table below, any variable whose VIF exceeds 10 is highlighted in pink to flag a potential problem.
+
+```{r}
+#| label: multicollinearity - step 1
+
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(matching_vars, c("m2_rate", "m14_rate"))
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+In this table, `m16_rate` (the proportion of contacts conducted via Internet-Enabled Therapy) has the highest VIF of 177, far exceeding the usual threshold.
+
+**Next step:** evaluate the impact of removing `m16_rate` from the matching model, as its extreme multicollinearity may distort the matching process.
+
+```{r}
+#| label: multicollinearity - step 2
+
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(matching_vars, c("m2_rate", "m14_rate", "m16_rate"))
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+After dropping `m16_rate`, the VIF table shows lower multicollinearity overall, but a few variables still exceed the VIF \> 10 threshold. The highest remaining VIF belongs to `m12_rate` (proportion of contacts conducted face-to-face).
+
+**Next step:** remove `m12_rate` from the matching model and re-run the VIF analysis to determine whether the remaining values fall below the high-VIF threshold and to assess any changes.
+
+```{r}
+#| label: multicollinearity - step 3
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(
+  matching_vars,
+  c("m2_rate", "m14_rate", "m16_rate", "m12_rate")
+)
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+After excluding `m12_rate`, the VIF table improves, but two variables still show VIF \> 10. The highest of these is `m7_rate` (proportion of discharges for people with a White broad ethnic background).
+
+**Next step:** drop `m7_rate` from the matching model and recompute the VIFs to verify whether the remaining variables now fall below the high-VIF threshold.
+
+```{r}
+#| label: multicollinearity - step 4
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(
+  matching_vars,
+  c("m2_rate", "m14_rate", "m16_rate", "m12_rate", "m7_rate")
+)
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+All VIF values are now below the 10 threshold, but the diagnostic messages still show instability in the propensity-score estimation. To keep reducing multicollinearity and improve model convergence, we will drop `m15_rate` (proportion of contacts with an interpreter present) and re-run the propensity score.
+
+**Next step:** remove `m15_rate` from the set of matching covariates and re-estimate the propensity scores and check whether the model stabilises.
+
+```{r}
+#| label: multicollinearity - step 5
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(
+  matching_vars,
+  c("m2_rate", "m14_rate", "m16_rate", "m12_rate", "m7_rate", "m15_rate")
+)
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+Removing `m15_rate` uncovered a high VIF for `m5_rate` (proportion of discharges for people living in 20% most deprived areas).
+
+**Next step:** remove `m5_rate`from the set of matching covariates and re-estimate the propensity scores and check whether the model stabilises.
+
+```{r}
+#| label: multicollinearity - step 6
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(
+  matching_vars,
+  c(
+    "m2_rate",
+    "m14_rate",
+    "m16_rate",
+    "m12_rate",
+    "m7_rate",
+    "m15_rate",
+    "m5_rate"
+  )
+)
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+Removing `m5_rate` lowered the VIFs of all the remaining variables below the 10 threshold, but the model still fails to converge.
+
+**Next step:** drop `m13_rate` (proportion of contacts conducted outside of weekdays, 9am to 5pm) and re-run the model.
+
+```{r}
+#| label: multicollinearity - step 7
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(
+  matching_vars,
+  c(
+    "m2_rate",
+    "m14_rate",
+    "m16_rate",
+    "m12_rate",
+    "m7_rate",
+    "m15_rate",
+    "m5_rate",
+    "m13_rate"
+  )
+)
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+Removing `m13_rate` uncovered a high VIF for `m17_rate` (proportion of contacts conducted one-to-one).
+
+**Next step:** drop `m17_rate` and re-run the model.
+
+```{r}
+#| label: multicollinearity - step 8
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(
+  matching_vars,
+  c(
+    "m2_rate",
+    "m14_rate",
+    "m16_rate",
+    "m12_rate",
+    "m7_rate",
+    "m15_rate",
+    "m5_rate",
+    "m13_rate",
+    "m17_rate"
+  )
+)
+
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+Removing `m17_rate` revealed high VIF scores for nearly all the rest of the matching variables. The highest of which is for `m4_rate` (proportion of discharges for people whose gender is female).
+
+**Next steps:** drop `m4_rate` and re-run the model.
+
+```{r}
+#| label: multicollinearity - step 9
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(
+  matching_vars,
+  c(
+    "m2_rate",
+    "m14_rate",
+    "m16_rate",
+    "m12_rate",
+    "m7_rate",
+    "m15_rate",
+    "m5_rate",
+    "m13_rate",
+    "m17_rate",
+    "m4_rate"
+  )
+)
+
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+Removing `m4_rate` reduced the overall VIF scores down, leaving two matching variables with high VIFs and the model remains unstable. The variable with the highest VIF if `o1_denom` (number of discharges for referrals that were seen and taken on for treatment).
+
+**Next step:** drop `o1_denom` and re-run the model.
+
+```{r}
+#| label: multicollinearity - step 10
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(
+  matching_vars,
+  c(
+    "m2_rate",
+    "m14_rate",
+    "m16_rate",
+    "m12_rate",
+    "m7_rate",
+    "m15_rate",
+    "m5_rate",
+    "m13_rate",
+    "m17_rate",
+    "m4_rate",
+    "o1_denom"
+  )
+)
+
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+All matching variables now have VIF scores below 4, confirming they are suitable for propensity-score matching. The model has converge, so the matching process proceeds without issue; the only remaining warning relates to having a single treated service and can safely be ignored.
+
+The set of matching variables now consists of:
+
+```{r}
+#| label: multicollinearity - final list of variables
+# get the list of variables in a tibble
+df_matching_var_labels <-
+  tibble::tibble(
+    variable = names(ls_labels),
+    description = unlist(ls_labels, use.names = FALSE)
+  ) |>
+  dplyr::filter(variable %in% matching_vars)
+
+# present as a {gt} table
+df_matching_var_labels |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::cols_label(
+    variable = "Variable name",
+    description = "Variable description"
+  )
+```
+
+# Analysis
+
+## Propensity score matching
+
+Using this list of matching variables we can now re-examine the propensity score matching results for Talkworks Devon.
+
+The below plot is called a love plot (also known as a covariate balance plot) which visualises how well our matching variables are balanced between Talkworks Devon before and after applying a propensity-score matching process.
+
+-   Our matching variables are listed along the y-axis and the x-axis shows the standardised mean difference (SMD), which is a measure of how different the averages are between the two groups.
+
+-   Points in red indicate the differences between Devon and all other Talking Therapy services before matching. Points in blue indicate the differences between Devon and five of the closest matched services.
+
+-   The dotted line is a reference at 0.2 SMD that indicates an acceptable imbalance threshold.
+
+```{r}
+#| label: propensity score matching
+#| fig-height: 7
+#| message: false
+#| warning: false
+
+# set the matching formula
+formula_matching <-
+  formula(
+    paste0(
+      "flag_intervention ~ ",
+      paste0(matching_vars, collapse = " + ")
+    )
+  )
+
+# do the matching
+obj_matches <-
+  MatchIt::matchit(
+    data = df_prep,
+    formula = formula_matching,
+    distance = "glm",
+    method = "nearest",
+    ratio = 5,
+  )
+
+# review the covariate balance
+cobalt::love.plot(
+  x = obj_matches,
+  abs = TRUE,
+  thresholds = 0.2,
+  var.names = ls_labels_wrap,
+  stars = "raw",
+  drop.distance = FALSE,
+  var.order = "unadjusted"
+) +
+  ggplot2::theme_minimal(base_size = 16) +
+  ggplot2::scale_colour_manual(
+    values = c("Unadjusted" = "#ec6555", Adjusted = "#5881c1")
+  )
+```
+
+These results show that the matched services are close, but not perfect, matches for Devon.
+
+After matching, most variables are more similar between Devon and the five matched services (the blue points are nearer to 0 than the red points), and nearly all post-matching standardised mean differences (SMD) fall within the 0.2 threshold.
+
+The largest remaining imbalance concerns M3, the proportion of referrals for people aged 60 or older. Matching reduced the difference, but the SMD still exceeds the 0.2 cut-off.
+
+Two variables, M2 and M11, became slightly more imbalanced after matching. However, their adjusted SMDs are either within the 0.2 threshold or very close to it.
+
+The five matched services from this process are listed in the below table.
+
+```{r}
+#| label: propensity score matches
+#| fig-height: 8
+
+# extract the matches
+matches <- MatchIt::get_matches(obj_matches)
+
+# show in a table
+matches |>
+  dplyr::select(name, ods_code) |>
+  dplyr::mutate(
+    ods_code = ods_code |> as.factor() |> forcats::fct_relevel("RWV")
+  ) |>
+  dplyr::arrange(ods_code) |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::data_color(
+    columns = gt::everything(),
+    rows = ods_code == "RWV",
+    palette = "#f9bf07"
+  ) |>
+  gt::cols_label(
+    name = "Talking Therapies organisation",
+    ods_code = "ODS code"
+  )
+```
+
+### Parallel trends assumption
+
+The parallel trends assumption states that, if the intervention never occurred, Devon and its control group would have followed the same trajectory over time. A difference-in-differences (DiD) analysis depends on this assumption because it uses the control group's pre-intervention trend as the counterfactual for Devon.
+
+To check this assumption holds we look at the pre-intervention period and if the outcome trends for both groups move together (i.e. have similar slopes), the assumption is plausible.
+
+We will now assess the pre-intervention trends for Devon (shown in orange) and each of the five matched Talking Therapy services (shown in grey). Trendlines are overlaid on each plot to make it easier to judge whether the series move together.
+
+#### NHS Wirral Talking Therapies NDC17
+
+**Outcome 1:** ❌ The trends are not parallel and even converge around November 2022.
+
+**Outcome 2:** ✔️ The trends are parallel
+
+```{r}
+#| label: PSM - wirral
+#| fig-height: 8
+
+# plots comparing each matched service with Devon
+plot_list <-
+  purrr::map(
+    # select the matches - but exclude Devon
+    .x = stringr::str_subset(
+      string = matches$ods_code,
+      pattern = "RWV",
+      negate = TRUE
+    ),
+    .f = \(.x) {
+      p <-
+        compare_matches_preintervention(
+          df = df,
+          selected_ods = c("RWV", .x),
+          period_preintervention = zoo::as.yearmon(c("Jan 2022", "Nov 2022")),
+          trendline = TRUE
+        )
+      return(p)
+    }
+  )
+
+# display
+plot_list[[1]]
+```
+
+#### Mind in Barnet (North Finchley) GDA01
+
+**Outcome 1:** ❌ The trends could be parallel but there is no data for January 2022 and there is too much variability
+
+**Outcome 2:** ❌ The trends could be parallel but there is no data for January 2022 and there is too much variability
+
+```{r}
+#| label: PSM - barnet
+#| fig-height: 8
+plot_list[[2]]
+```
+
+#### Beacon Counselling DA6
+
+**Outcome 1:** ❌ The trends are not parallel
+
+**Outcome 2:** ❌ The trends are not parallel
+
+```{r}
+#| label: PSM - beacon
+#| fig-height: 8
+plot_list[[3]]
+```
+
+#### Everyturn Services Ltd Talking Therapies (Peterborough) NDC05
+
+**Outcome 1:** ❌ The trends are not parallel - they are slightly divergent
+
+**Outcome 2:** ❌ The trends are not parallel - they are slightly divergent
+
+```{r}
+#| label: PSM - everyturn
+#| fig-height: 8
+plot_list[[4]]
+```
+
+#### Tower Hamlets Talking Therapies RWK53
+
+**Outcome 1:** ❌ The trends are not parallel
+
+**Outcome 2:** ❌ The trends are not parallel - they are divergent
+
+```{r}
+#| label: PSM - tower hamlets
+#| fig-height: 8
+plot_list[[5]]
+```
+
+### Summary
+
+None of these five matched services demonstrated parallel trends with Devon in the pre-intervention period, except for Wirral, where there appeared to be parallel trends for Outcome 2.
+
+## Coarsened exact matching - Nov 2022
+
+Coarsened Exact Matching (CEM) offers an alternative approach to propensity score matching. First, each variable is grouped into broader categories (e.g., 0-19%, 20-39%, 40-59%, etc.). Then Talking Therapy services are matched **exactly** on these coarsened bins.
+
+The key advantage is that balance on the matching variables is guaranteed within each bin. The researcher controls the trade-off by choosing the width of the categories:
+
+-   Narrower bins - tighter similarity between matched services but fewer matches
+
+-   Wider bins - more matches but less precise similarity
+
+The same matching variables selected from the multicollinearity optimisation process will be used. We will start with four cutpoints to divide each matching variable into five separate bins.
+
+```{r}
+#| label: coarsened exact matching
+#| fig-height: 8
+#| message: FALSE
+
+# do the matching
+obj_matches <-
+  MatchIt::matchit(
+    data = df_prep,
+    formula = formula_matching, # using the same formula as determined by VIF analysis
+    method = "cem",
+    cutpoints = 4
+  )
+
+# review the covariate balance
+cobalt::love.plot(
+  x = obj_matches,
+  abs = TRUE,
+  thresholds = 0.2,
+  var.names = ls_labels_wrap,
+  stars = "raw",
+  var.order = "unadjusted"
+) +
+  ggplot2::theme_minimal(base_size = 16) +
+  ggplot2::scale_colour_manual(
+    values = c("Unadjusted" = "#ec6555", Adjusted = "#5881c1")
+  )
+```
+
+As with the propensity score matching, these results show the matched services as close, but not perfect, matches for Devon.
+
+After matching, every variable except one shows improved similarity (the blue points are nearer to 0 than the red points) and four variables are within the 0.2 SMD threshold, though two of these were already within this range prior to matching.
+
+Applying four cut-points allowed the CEM procedure to match Devon with six Talking Therapy services. When we increased the number of cut-points to five - intended to boost sensitivity - no matches were found.
+
+The six matched services found using using four cut-points are:
+
+```{r}
+#| label: coarsened exact matches
+#| fig-height: 8
+
+matches <- MatchIt::match_data(obj_matches)
+
+# show in a table
+matches |>
+  dplyr::select(name, ods_code) |>
+  dplyr::mutate(
+    ods_code = ods_code |> as.factor() |> forcats::fct_relevel("RWV")
+  ) |>
+  dplyr::arrange(ods_code) |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::data_color(
+    columns = gt::everything(),
+    rows = ods_code == "RWV",
+    palette = "#f9bf07"
+  ) |>
+  gt::cols_label(
+    name = "Talking Therapies organisation",
+    ods_code = "ODS code"
+  )
+
+# plots comparing each matched service with Devon
+plot_list <-
+  purrr::map(
+    .x = stringr::str_subset(
+      string = matches$ods_code,
+      pattern = "RWV",
+      negate = TRUE
+    ),
+    .f = \(.x) {
+      p <-
+        compare_matches_preintervention(
+          df = df,
+          selected_ods = c("RWV", .x),
+          period_preintervention = zoo::as.yearmon(c("Jan 2022", "Nov 2022")),
+          trendline = TRUE
+        )
+      return(p)
+    }
+  )
+```
+
+### Parallel trends assumption
+
+We will now assess the parallel trends for Devon (shown in orange) and each of the six matched Talking Therapy services (shown in grey). Trendlines are overlaid on each plot to make it easier to judge whether the series move together.
+
+#### Ealing Talking Therapies RKL07
+
+**Outcome 1:** ✔️ The trends are almost parallel, there is a hint of divergence and there is more variability in Ealing's outcome than in Devon's, but overall a close match
+
+**Outcome 2:** ✔️ The trends are parallel, though there is more variability in Ealing's outcome
+
+```{r}
+#| label: cem - ealing
+#| fig-height: 8
+plot_list[[1]]
+```
+
+#### Hounslow Talking Therapies RKL42
+
+**Outcome 1:** ✔️ The trends are parallel, though there is more variability in Hounslow's outcome
+
+**Outcome 2:** ✔️ The trends are parallel, though there is more variability in Hounslow's outcome
+
+```{r}
+#| label: cem - hounslow
+#| fig-height: 8
+plot_list[[2]]
+```
+
+#### Sutton IAPT RQYPR
+
+**Outcome 1:** ❌ The trends are very slightly convergent
+
+**Outcome 2:** ❌ The trends are slightly divergent
+
+```{r}
+#| label: cem - sutton
+#| fig-height: 8
+plot_list[[3]]
+```
+
+#### Midlands Partnership University NHS Foundation Trust RRE
+
+**Outcome 1:** ❌ The trends are convergent
+
+**Outcome 2:** ❌ The trends are slightly divergent
+
+```{r}
+#| label: cem - midlands
+#| fig-height: 8
+plot_list[[4]]
+```
+
+#### The Briary Unit RX3YE
+
+**Outcome 1:** ❌ The trends are not parallel
+
+**Outcome 2:** ❌ The trends are slightly divergent
+
+```{r}
+#| label: cem - briary
+#| fig-height: 8
+plot_list[[5]]
+```
+
+#### Blackpool Teaching Hospitals NHS Foundation Trust RXL
+
+**Outcome 1:** ❌ The trends are convergent
+
+**Outcome 2:** ❌ The trends are convergent
+
+```{r}
+#| label: cem - blackpool
+#| fig-height: 8
+plot_list[[6]]
+```
+
+### Summary
+
+Six matched Talking Therapies services were matched with Devon. Two of these, *Ealing Talking Therapies* (RKL07) and *Hounslow Talking Therapies* (RKL42) had pre-intervention trends that visually match those of Devon's for both outcome measures.
+
+## Synthetic Difference-in-Differences (DiD)
+
+Synthetic Difference-in-Differences (Synthetic DiD) blends two ideas: the traditional difference-in-differences method and the synthetic control technique.
+
+First it builds a "synthetic" version of the control group by assigning weights to untreated units so that, before the intervention, this synthetic group looks just like the treated unit.
+
+Then it compares the outcomes after the intervention between the treated unit and its synthetic counterpart. By creating a better-matched control, Synthetic DiD helps produce more reliable estimates of a treatment's effect, especially when the parallel-trend assumption is weak.
+
+### Description
+TO DO
+
+Need to describe the package used, the cohort of donor services (removing those known to have implemented a change to improve adherence, need activity dating back to Jan 2022, need balanced panel - so removing sites where there is a gap in outcome - even if just one month ) - ideally enumerate these.
+
+```{r}
+#| label: synthdid
+#| fig-height: 8
+#| warning: false
+
+set.seed(12345)
+
+# get a dataset that is ready for synthetic DiD
+.yearmon_period = zoo::as.yearmon(c("Jan 2022", "May 2025"))
+.yearmon_intervention = zoo::as.yearmon("Dec 2022")
+.ods_controls = NA
+
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df,
+    outcome = "o1_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = "RWV",
+    # ods_controls = c("RKL07", "RKL42", "RQYPR", "RRE", "RX3YE", "RXL"),
+    # ods_controls = c("RQYPR", "RRE", "RXL"),
+    df_intervention_services = df_intervention_services
+  )
+
+# convert from long to wide matrix
+synth_matrix <- synthdid::panel.matrices(panel = df_synth)
+
+# estimate the DiD
+did_estimate <- synthdid::synthdid_estimate(
+  Y = synth_matrix$Y,
+  N0 = synth_matrix$N0,
+  T0 = synth_matrix$T0
+)
+
+# output a summary
+# summary(did_estimate)
+
+# estimate coords for annotation
+annotation_x <-
+  .yearmon_intervention +
+  ((.yearmon_period[2] - .yearmon_intervention) / 2) +
+  2 / 12
+annotation_y <-
+  df_synth |>
+  dplyr::filter(calc_month >= .yearmon_intervention) |>
+  dplyr::summarise(y_val = quantile(o1_rate, 0.39)) |>
+  dplyr::pull(y_val)
+
+# find the CI (NB, bootstrap process takes a while)
+se = sqrt(stats::vcov(did_estimate, method = "placebo"))
+
+# plot the DiD
+did_estimate |>
+  synthdid::synthdid_plot(
+    line.width = 1,
+    point.size = 2,
+    overlay = 0,
+    treated.name = "Devon",
+    trajectory.alpha = 0.5,
+    onset.alpha = 0.6,
+    diagram.alpha = 1
+  ) +
+  ggplot2::theme_minimal(base_size = 20) +
+  ggplot2::scale_y_continuous(labels = scales::label_percent(accuracy = 0.5)) +
+  zoo::scale_x_yearmon() +
+  ggplot2::geom_label(
+    data = data.frame(
+      x = annotation_x,
+      y = annotation_y,
+      lbl = glue::glue(
+        "DiD (95% CI)\n",
+        "{round(did_estimate * 100, 1)}% (",
+        "{round((did_estimate - 1.96 * se) * 100, 1)}%, ",
+        "{round((did_estimate + 1.96 * se) * 100, 1)}%)"
+      )
+    ),
+    mapping = ggplot2::aes(x = x, y = y, label = lbl),
+    hjust = 0,
+    fill = adjustcolor("white", alpha.f = 0.5),
+    border.colour = adjustcolor("#2c2825", alpha.f = 0.1)
+  ) +
+  ggplot2::theme(legend.position = "bottom") +
+  ggplot2::scale_colour_manual(
+    values = c(
+      "Devon" = scales::col_darker("#f9bf07", amount = 5),
+      "synthetic control" = "#5881c1"
+    )
+  ) +
+  ggplot2::labs(
+    title = "Outcome 1",
+    subtitle = stringr::str_wrap(
+      "Devon performed 0.6% higher than expected, but the difference is not statistically significant",
+      50
+    )
+  )
+
+```
+
+**What the chart displays**
+
++----------------------------+-------------------------------------------------------------------------------+------------------------------------------------+
+| Element                    | Meaning                                                                       | Visual clue                                    |
++============================+===============================================================================+================================================+
+| Axes                       | Outcome 1 performance (y-axis) vs time (x-axis)                               | Standard Cartesian axes                        |
++----------------------------+-------------------------------------------------------------------------------+------------------------------------------------+
+| Devon's actual performance | Measured values for Devon                                                     | Orange solid line                              |
++----------------------------+-------------------------------------------------------------------------------+------------------------------------------------+
+| Synthetic control          | Counterfactual series built from weighted pre-intervention data               | Blue solid line                                |
++----------------------------+-------------------------------------------------------------------------------+------------------------------------------------+
+| Intervention start         | Point at which the Devon interventions began                                  | Vertical grey line (December 2022)             |
++----------------------------+-------------------------------------------------------------------------------+------------------------------------------------+
+| Pre-intervention weights   | Relative contribution of each pre-intervention month to the synthetic control | Pink shapes in the lower-left corner           |
++----------------------------+-------------------------------------------------------------------------------+------------------------------------------------+
+| Prallelogram overlay       | Visual comparison of the two trajectories                                     | Blue-topped edge = synthetic control path      |
+|                            |                                                                               |                                                |
+|                            |                                                                               | Dotted bottom edge = counterfactual Devon path |
+|                            |                                                                               |                                                |
+|                            |                                                                               | Orange line = Devon's actual trajectory        |
++----------------------------+-------------------------------------------------------------------------------+------------------------------------------------+
+
+: Chart key
+
+**How to read the parallelogram**
+
+-   Top edge (blue) - trajectory of the synthetic control from the pre- to post-intervention period
+
+-   Bottom edge (dotted) - what Devon's trend would have looked like without any interventions (the counterfactual)
+
+-   Orange line - Devon's observed post-intervention trend.
+
+Devon's orange line rises more sharply than the dotted counterfactual, indicating a positive impact of the interventions. The estimated gain is 0.6% above the expected value. The 95% confidence interval spans -10% to + 11%, meaning the true effect could be slightly negative or moderately positive. Consequently, the result is not statistically significant.
+
+```{r}
+#| label: interpretation help
+
+# work out the total discharges in 12 months preceeding
+total_discharges <-
+  df |>
+  dplyr::filter(
+    ods_code == "RWV",
+    dplyr::between(
+      calc_month,
+      zoo::as.yearmon("Jun 2024"),
+      zoo::as.yearmon("May 2025")
+    )
+  ) |>
+  dplyr::summarise(
+    total = sum(o1_denom_discharges_count, na.rm = TRUE)
+  ) |>
+  dplyr::pull(total)
+
+# work out the expected number of people to benefit from the 0.6% uplift
+people_benefit <-
+  floor(total_discharges * 0.006)
+```
+
+::: callout-tip
+## Interpretation
+
+The chart clearly shows Devon's post-intervention performance exceeding the synthetic counterfactual, but the wide confidence interval prevents a definitive claim of effectiveness.
+
+Assuming the 0.6% gain is real, it translates to an additional **`r people_benefit` people** receiving the more intensive therapy (based on Devon's annual discharge volume of `r scales::comma(total_discharges)` from June 2024 to May 2025).
+
+:::
+
+## Sensitivity analysis
+Any alternative specifications tried (different donor pools) and whether conclusions change
+- limit to the matched cohort from ces - what's the DID and CI?
+- limit the post-implementation data to ? Jan 2025 - what's the DID and CI?
+
+Including all available control services increases the sample size, which can enhance the statistical power of the estimates. This is particularly important in cases such as this where the treatment group is small.
+
+The {synthdid} method is designed to leverage the entire pool of control units to construct a synthetic control group that best approximates the treatment group.
+
+## Limitations
+List the limitations of this study.
+
+* Only one intervention site. Results in greater uncertainty of the treatment effect - resulting in wider confidence intervals. This means it takes a much larger treatment effect to be 'statistically significant' than a smaller treatment measured across multiple services.
+
+* Removed services from the donor pool where there is a known intervention. However, not all interventions may be known and we may be comparing Devon to 
