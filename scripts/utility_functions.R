@@ -1197,3 +1197,108 @@ get_vif_score_table <- function(matching_vars, df) {
   # return the result
   return(t)
 }
+
+#' Plot spaghetti plot
+#'
+#' @description
+#' Plots a spaghetti plot showing timeseries for lots of TT services as
+#' grey lines and the intervention service highlighted in orange.
+#'
+#' @details
+#' This plot is helpful to visualise the full timeseries of all services
+#' involved in an analysis, to see the post-intervention data as well as
+#' the pre-intervention data reviewed for the parallel trends assessments.
+#'
+#' @param df Tibble - data filtered for the correct time period and limited to required intervention and control services
+#' @param str_outcome String - the name of the variable which contains the outcome data
+#' @param ods_intervention String - the ODS code of the service which received the intervention - will be highlighted in orange in the plot
+#' @param str_title String - the title for the plot
+#' @param str_subtitle String - the subtitle for the plot
+#' @param zoo_intervention zoo::yearmon - the month when the intervention was introduced
+#' @param bool_intervention Boolean, TRUE = display the intervention start month, FALSE do not
+#'
+#' @returns {ggplot2} object
+plot_spaghetti_plot <- function(
+  df,
+  str_outcome,
+  ods_intervention,
+  str_title = "",
+  str_subtitle = "",
+  zoo_intervention,
+  bool_intervention = FALSE
+) {
+  # convert to masked variable
+  var_outcome <- as.symbol(str_outcome)
+
+  # create the plot
+  p <-
+    ggplot2::ggplot()
+
+  # add the intervention line (if requested)
+  if (bool_intervention & !is.na(zoo_intervention)) {
+    p <-
+      p +
+      ggplot2::geom_vline(
+        xintercept = zoo_intervention,
+        linetype = "dotted"
+      )
+  }
+
+  # continue with the plot
+  p <-
+    p +
+    # add the spaghetti lines
+    ggplot2::geom_line(
+      data = df,
+      mapping = ggplot2::aes(
+        x = calc_month,
+        y = {{ var_outcome }},
+        group = ods_code,
+        colour = line_colour
+      ),
+      linewidth = 0.5
+    ) +
+    # colour the lines
+    ggplot2::scale_colour_identity() +
+    # label the lines with the code for the service
+    ggrepel::geom_text_repel(
+      data = df |> dplyr::slice_max(order_by = calc_month, n = 1),
+      mapping = ggplot2::aes(
+        x = calc_month,
+        y = {{ var_outcome }},
+        group = ods_code,
+        label = ods_code
+      ),
+      hjust = "left",
+      direction = "y",
+      nudge_x = 2 / 12 # move to the right by two months
+    ) +
+    # plot intervention service trace in orange
+    ggplot2::geom_line(
+      data = df |> dplyr::filter(ods_code == ods_intervention),
+      mapping = ggplot2::aes(
+        x = calc_month,
+        y = {{ var_outcome }}
+      ),
+      colour = "#f9bf07",
+      linewidth = 2
+    ) +
+    # adjust the scales
+    zoo::scale_x_yearmon(limits = c(NA, zoo::as.yearmon("Aug 2025"))) +
+    ggplot2::scale_y_continuous(
+      limits = c(0, NA),
+      labels = scales::label_percent(accuracy = 1)
+    ) +
+    # themes
+    ggplot2::theme_minimal(base_size = 20) +
+    ggplot2::theme(axis.title = ggplot2::element_blank()) +
+    ggplot2::labs(
+      title = str_title,
+      subtitle = stringr::str_wrap(str_subtitle, width = 50)
+    )
+
+  # return the plot
+  return(p)
+}
+
+get_manual_did_estimation <- function() {}
