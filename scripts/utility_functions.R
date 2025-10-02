@@ -1301,4 +1301,97 @@ plot_spaghetti_plot <- function(
   return(p)
 }
 
-get_manual_did_estimation <- function() {}
+#' Get a manual DiD estimation
+#'
+#' @description
+#' Returns a manual difference-in-differences estimation and confidence
+#' intervals for a given dataframe
+#'
+#' @param df Tibble of data which is filtered for ODS codes and time period
+#' @param ods_intervention String ODS code of the service which received the intervention
+#' @param zoo_intervention zoo::yearmon() of the month the intervention started
+#' @param str_outcomes String vector containing two values naming the variables holding outcome 1 and outcome 2
+#'
+#' @returns Tibble containing the point estimates and confidence intervals for both outcomes
+get_manual_did_estimation <- function(
+  df,
+  ods_intervention,
+  zoo_intervention,
+  str_outcomes = c("o1_rate", "o2_rate")
+) {
+  # convert the outcome variable names to symbols
+  var_o1 <- as.symbol(str_outcomes[1])
+  var_o2 <- as.symbol(str_outcomes[2])
+
+  # prepare the data
+  df_model <-
+    df |>
+    # simplify
+    dplyr::select(ods_code, calc_month, {{ var_o1 }}, {{ var_o2 }}) |>
+    # create treatment and post indicators
+    dplyr::mutate(
+      treated = dplyr::if_else(ods_code == "RWV", 1L, 0L),
+      post = dplyr::if_else(calc_month >= zoo_intervention, 1L, 0L)
+    )
+
+  # fit the DiD models
+  lm_did_1 <- lm(
+    formula = as.formula(
+      glue::glue("{str_outcomes[1]} ~ treated * post")
+    ),
+    data = df_model
+  )
+
+  lm_did_2 <- lm(
+    formula = as.formula(
+      glue::glue("{str_outcomes[2]} ~ treated * post")
+    ),
+    data = df_model
+  )
+
+  # calculate robust standard errors
+  # NB, `lmtest::coeftest()` combined with `sandwich::vcovHC(type = "HC1")`
+  # give heteroskedasticity-consistent, small-sample-adjusted standard errors,
+  # while keeping the OLS point estimates unchanged. In DiD analyses - where
+  # error variance often varies across groups and time and where clusting is
+  # common - this approach yields more reliable inference than the default
+  # homoskedastic SEs.
+  lm_did_1_se <-
+    lmtest::coeftest(
+      x = lm_did_1,
+      vcov. = sandwich::vcovHC(
+        x = lm_did_1,
+        type = "HC1",
+        cluster = df_model$ods_code
+      )
+    )
+
+  lm_did_2_se <-
+    lmtest::coeftest(
+      x = lm_did_2,
+      vcov. = sandwich::vcovHC(
+        x = lm_did_2,
+        type = "HC1",
+        cluster = df_model$ods_code
+      )
+    )
+
+  # combine the results for returning
+  df_return <-
+    dplyr::bind_rows(
+      # outcome 1
+      lm_did_1_se |>
+        broom::tidy(conf.int = TRUE) |>
+        dplyr::filter(term == "treated:post") |>
+        dplyr::mutate(outcome = "Outcome 1"),
+
+      # outcome 2
+      lm_did_2_se |>
+        broom::tidy(conf.int = TRUE) |>
+        dplyr::filter(term == "treated:post") |>
+        dplyr::mutate(outcome = "Outcome 2")
+    )
+
+  # return the result
+  return(df_return)
+}
