@@ -1394,3 +1394,211 @@ get_manual_did_estimation <- function(
   # return the result
   return(df_return)
 }
+
+#' Delegate for {synthdid} analysis
+#'
+#' @description
+#' Takes care of the process for running a DiD analysis using
+#' the {synthdid} package
+#'
+#' @param df_synth Tibble of data prepared for analysis by 'prepare_df_for_synthdid()' function
+#' @param .yearmon_intervention zoo::yearmon object defining the month the intervention started
+#' @param .yearmon_period zoo::yearmon vector defining the start of the analysis period (element 1) and the end of the analysis (element 2)
+#' @param .ods_treated String ODS code for the treated service
+#' @param str_treated String name for the treated service
+#' @param summary_spec String description of the specification - used in the summary table for sensitivity analysis
+#' @param summary_outcome String description of the outcome - used in the summary table for sensitivity analysis
+#' @param str_outcome String name of the variable to use as the outcome
+#' @param labs_title String the title to use in the {ggplot2} object
+#' @param labs_subtitle String the subtitle to tuse in the {ggplot2} object
+#'
+#' @returns Named list containing the DiD esimate, standard error, a Tibble summarising the findings, and a {ggplot2} plot showing the analysis
+delegate_synthdid_analysis <- function(
+  df_synth,
+  .yearmon_intervention,
+  .yearmon_period,
+  .ods_treated,
+  str_treated = "",
+  summary_spec = "",
+  summary_outcome = "",
+  str_outcome,
+  labs_title = "",
+  labs_subtitle = ""
+) {
+  # set the seed
+  set.seed(12345)
+
+  # convert strings to symbols
+  var_outcome <- as.symbol(str_outcome)
+
+  # convert from long to wide matrix
+  synth_matrix <- synthdid::panel.matrices(panel = df_synth)
+
+  # estimate the DiD
+  did_estimate <- synthdid::synthdid_estimate(
+    Y = synth_matrix$Y,
+    N0 = synth_matrix$N0,
+    T0 = synth_matrix$T0
+  )
+
+  # estimate coords for annotation
+  annotation_x <-
+    .yearmon_intervention +
+    ((.yearmon_period[2] - .yearmon_intervention) / 2) +
+    2 / 12
+
+  annotation_y <-
+    df_synth |>
+    dplyr::filter(
+      calc_month >= .yearmon_intervention,
+      ods_code == .ods_treated
+    ) |>
+    dplyr::summarise(y_val = quantile({{ var_outcome }}, 0.5)) |>
+    dplyr::pull(y_val)
+
+  # find the CI (NB, bootstrap process takes a while)
+  se <- sqrt(stats::vcov(did_estimate, method = "placebo")) |> as.numeric()
+
+  # get a summary of the stats
+  did_summary <-
+    tibble::tibble(
+      specification = summary_spec,
+      outcome = summary_outcome,
+      estimate = as.numeric(did_estimate),
+      conf.low = estimate - (1.96 * se),
+      conf.high = estimate + (1.96 * se)
+    )
+
+  # plot the DiD
+  did_plot <-
+    did_estimate |>
+    synthdid::synthdid_plot(
+      line.width = 1,
+      point.size = 2,
+      overlay = 0,
+      treated.name = str_treated,
+      trajectory.alpha = 0.5,
+      onset.alpha = 0.6,
+      diagram.alpha = 1
+    ) +
+    ggplot2::theme_minimal(base_size = 20) +
+    ggplot2::scale_y_continuous(
+      labels = scales::label_percent(accuracy = 0.5)
+    ) +
+    zoo::scale_x_yearmon() +
+    # add a label describing the did esimate and CI
+    ggplot2::geom_label(
+      data = data.frame(
+        x = annotation_x,
+        y = annotation_y,
+        lbl = glue::glue(
+          "DiD (95% CI)\n",
+          "{round(did_estimate * 100, 1)}% (",
+          "{round((did_estimate - 1.96 * se) * 100, 1)}%, ",
+          "{round((did_estimate + 1.96 * se) * 100, 1)}%)"
+        )
+      ),
+      mapping = ggplot2::aes(x = x, y = y, label = lbl),
+      hjust = 0,
+      fill = adjustcolor("white", alpha.f = 0.5),
+      border.colour = adjustcolor("#2c2825", alpha.f = 0.1)
+    ) +
+    ggplot2::theme(legend.position = "bottom") +
+    ggplot2::scale_colour_manual(
+      values = setNames(
+        c(scales::col_darker("#f9bf07", amount = 5), "#5881c1"),
+        c(str_treated, "synthetic control")
+      )
+    ) +
+    ggplot2::labs(
+      title = labs_title,
+      subtitle = stringr::str_wrap(labs_subtitle, 50)
+    )
+
+  # return a list of all objects
+  return(
+    list(
+      "did_estimate" = did_estimate,
+      "did_se" = se,
+      "did_summary" = did_summary,
+      "did_plot" = did_plot
+    )
+  )
+}
+
+#' Display the `did_summary` tibble as a formatted {gt} table
+#'
+#' @description
+#' Takes a `did_summary` Tibble produced from the `delegate_synthdid_analysis`
+#' function and formats it in a {gt} table for display
+#'
+#' @param df Tibble of data from `delegate_synthdid_analysis`
+#' @param sensitivity_summary Boolean, TRUE = format for a summary of sensitivity analyses
+#'
+#' @returns {gt} object
+display_did_summary_in_gt <- function(df, sensitivity_summary = FALSE) {
+  # group by specification if we are showing a summary
+  if (sensitivity_summary) {
+    df <-
+      df |>
+      dplyr::group_by(specification)
+  } else {
+    df <-
+      df |>
+      dplyr::select(-specification)
+  }
+
+  # produce the table
+  gt <-
+    df |>
+    dplyr::mutate(
+      # flag when the findings is statistically significant
+      sig = dplyr::if_else(
+        condition = (conf.low > 0 & conf.high > 0) |
+          (conf.low < 0 & conf.high < 0),
+        true = TRUE,
+        false = FALSE
+      )
+    ) |>
+    # create the table
+    gt::gt(row_group_as_column = TRUE) |>
+    gt::tab_options(quarto.disable_processing = TRUE) |>
+    # format the numbers
+    gt::fmt_percent(
+      columns = c(estimate, conf.low, conf.high),
+      decimals = 2
+    ) |>
+    # create the 95% CI
+    gt::cols_merge(
+      columns = c(conf.low, conf.high),
+      pattern = "{1} to {2}"
+    ) |>
+    # rename columns
+    gt::cols_label(
+      outcome = "Outcome",
+      estimate = "Difference-in-Difference (DiD) estimate",
+      conf.low = "95% confidence interval (CI)"
+    ) |>
+    # show significant results in bold
+    gt::tab_style(
+      style = list(gt::cell_text(weight = "bold")),
+      locations = gt::cells_body(
+        columns = c(estimate, conf.low),
+        rows = sig == TRUE
+      )
+    ) |>
+    # hide the 'sig' column
+    gt::cols_hide(columns = sig) |>
+    # add a footnote to explain formatting
+    gt::tab_source_note(gt::md(
+      "Statistically significant findings are shown in **bold**"
+    )) |>
+    # adjust spacing
+    gt::cols_width(
+      outcome ~ gt::pct(20),
+      estimate ~ gt::pct(20)
+    )
+
+  # return the table
+  return(gt)
+}
