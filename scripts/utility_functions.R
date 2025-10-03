@@ -851,7 +851,7 @@ prepare_df_for_synthdid <- function(
     dplyr::select(
       ods_code,
       calc_month,
-      o1_rate,
+      {{ outcome }}
     ) |>
     dplyr::filter(
       # exclude other services that have implemented an intervention
@@ -885,9 +885,8 @@ prepare_df_for_synthdid <- function(
     # simplify again and put variables in correct order
     dplyr::select(
       ods_code,
-      # month_n,
       calc_month,
-      o1_rate,
+      {{ outcome }},
       treated
     ) |>
     # expand so each ods_code has all the month_n values
