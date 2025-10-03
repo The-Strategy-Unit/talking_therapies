@@ -60,6 +60,38 @@ ls_labels <- get_variable_labels()
 
 ```
 
+# Executive summary
+The NHSE Behavioural Science team commissioned the Strategy Unit (SU) to deliver an independent evaluation of locally implemented interventions aimed at increasing engagement with the NHS Talking Therapies programme. The main research question is:
+
+> Are these interventions effective (versus doing nothing) at reducing the proportion of clients who complete a course of treatment (attend at least two treatment sessions), but then end treatment after only two, three or four treatment sessions?
+
+**Key findings**
+
+-   **No robust, consistent effect** was found for either a) the proportion of discharged referrals receiving five treatmtent contacts, or b) the proportion of referrals receiving between 2 and 4 treatment contacts.
+
+-  **Possible modest positive signal**: point-estimates are slightly above zero, but confidence intervals are wide and the results are not statistically conclusive.
+
+**Implications**
+
+Scale the pilot to allow for a more rigorous experimental design. This should involve a cohort of similar Talking Therapy services, randomising half to receive the interventions at the same time and the other half serving as controls. Follow outcomes prospectively for both groups to obtain precise estimates of effect size.
+
+**Methods**
+
+Difference-in-Differences (DiD) quasi-experimental study design comparing Devon's outcomes pre- and post-intervention with a) a set of services matched with Devon based on six covariates and b) a synthetic control based on a large set of donor services.
+
+Data was sourced from the Increasing Access to Psychological Therapies (IAPT) dataset, a pseudonmyised record-level dataset, accessed via the NHS England's Unified Data Access Layer (UDAL) platform.
+
+The core assumption is that pre-intervention trends of the matched cohort and synthetic control approximate the counterfactual trend Devon would have followed without the interventions.
+
+**Limitations and risks**
+
+-   Devon is the only service to receive the interventions which results in significant uncertainty in the treatment effect  
+
+-   Devon's rollout of the interventions was staggered across twelve months, making it difficult to define a clean pre- / post-treatment split and isolate the treatment effect
+
+-   Two control services experienced abrupt shocks in mid-2023 which distorted the post-implementation average performance, weakening the credibility of the estimated trajectory for Devon had they not implemented the interventions.
+
+
 # Project overview
 
 ## Interventions
@@ -1550,7 +1582,7 @@ These figures clearly present Devon's post-intervention performance exceeding th
 Assuming the 4.9% gain is real, it translates to an additional **`r people_benefit` people** receiving the more intensive therapy per year (based on Devon's annual discharge volume of `r scales::comma(total_discharges)` from June 2024 to May 2025).
 :::
 
-#### Sensitivity analysis
+### Sensitivity analysis
 
 Two important decisions were made that led to the above analytical findings:
 
@@ -1560,12 +1592,12 @@ Two important decisions were made that led to the above analytical findings:
 
 Below we reassess the findings after relaxing each of these decisions to determine whether the original conclusions hold or are sensitive to these analytical choices.
 
-##### Keeping anomalous months
+#### Keeping anomalous months
 
 What impact does keeping the extreme values in the time series have?
 
 ```{r}
-#| label: ced - sensitivity - anomalous months
+#| label: cem - sensitivity - anomalous months
 # conduct did analysis on the two matched services
 did <-
   get_manual_did_estimation(
@@ -1623,12 +1655,12 @@ For outcome 1, Devon's observed rate is **6.7% higher** than what the matched co
 
 For outcome 2, Devon's observed rate is **5.5% lower** than what the matched controls would predict, and the 95% confidence interval (-10.2% to -0.8%) indicates the effect is **statistically significant**.
 
-##### Using all six controls
+#### Using all six controls
 
 What impact does using all six matched control services have on the findings?
 
 ```{r}
-#| label: ced - sensitivity - all six controls
+#| label: cem - sensitivity - all six controls
 
 # get a df with the details for our matched services
 df_analysis <-
@@ -1713,9 +1745,11 @@ For outcome 1, Devon's observed rate is **2.6% higher** than what the matched co
 
 For outcome 2, Devon's observed rate is **1.2% lower** than what the matched controls would predict, and the 95% confidence interval (-3.4% to -1.2%) indicates the effect is **statistically significant**.
 
-##### Summary
+#### Summary
 
 ```{r}
+#| label: cem - sensitivity summary
+
 # display a summary table
 did_overall |>
   # simplify
@@ -1763,13 +1797,13 @@ The preceeding section highlights the challenges of finding genuine control serv
 
 Synthetic Difference-in-Differences (Synthetic DiD) blends two ideas: the traditional difference-in-differences method and the synthetic control technique.
 
-First it builds a "synthetic" version of the control group by assigning weights to untreated units so that, before the intervention, this synthetic group looks just like the treated unit.
+-   First it builds a "synthetic" version of the control group by assigning weights to untreated units so that, before the intervention, this synthetic group looks just like the treated unit.  
 
-Then it compares the outcomes after the intervention between the treated unit and its synthetic counterpart. By creating a better-matched control, Synthetic DiD helps produce more reliable estimates of a treatment's effect, especially when the parallel-trend assumption is weak.
+-   Then it compares the outcomes after the intervention between the treated unit and its synthetic counterpart. By creating a better-matched control, Synthetic DiD helps produce more reliable estimates of a treatment's effect, especially when the parallel-trend assumption is weak.  
 
-The [{synthdid}](https://synth-inference.github.io/synthdid/) package was used to conduct these Synthetic DiD analyses. This uses the method described by [@arkhangelsky2019] to combine the strengths of synthetic-control weighting with the traditional DiD framework. {synthdid} delivers unbiased treatment-effect estimates, even when the parallel-trends assumption is violated.
+The [{synthdid}](https://synth-inference.github.io/synthdid/) package was used to conduct these Synthetic DiD analyses. This uses the method described by [@arkhangelsky2019] to combine the strengths of synthetic-control weighting with the traditional DiD framework. According to the paper this technique delivers unbiased treatment-effect estimates, even when the parallel-trends assumption is violated.
 
-In this approach will build a 'donor pool' of all Talking Therapy services to create a synthetic counterfactual that estimates how Devon would have performed without its interventions.
+In this approach we will build a 'donor pool' of all Talking Therapy services to create a synthetic counterfactual that estimates how Devon would have performed without its interventions.
 
 -   As with the earlier section, we first exclude any service that has its own adherence-improvement intervention
 
@@ -1778,98 +1812,48 @@ In this approach will build a 'donor pool' of all Talking Therapy services to cr
 -   Consequently, any service with even a single missing month is dropped from the donor pool.
 
 ```{r}
-#| label: synthdid
+#| label: synthdid - outcome 1
 #| fig-height: 8
 #| warning: false
 
+# set up for the did analysis
 set.seed(12345)
-
-# get a dataset that is ready for synthetic DiD
 .yearmon_period = zoo::as.yearmon(c("Jan 2022", "May 2025"))
 .yearmon_intervention = zoo::as.yearmon("Dec 2022")
-.ods_controls = NA
+.ods_treated = "RWV"
 
+# get a dataset that is ready for synthetic DiD
 df_synth <-
   prepare_df_for_synthdid(
     df = df,
     outcome = "o1_rate",
     yearmon_period = .yearmon_period,
     yearmon_intervention = .yearmon_intervention,
-    ods_treated = "RWV",
-    # ods_controls = c("RKL07", "RKL42", "RQYPR", "RRE", "RX3YE", "RXL"),
-    # ods_controls = c("RQYPR", "RRE", "RXL"),
+    ods_treated = .ods_treated,
     df_intervention_services = df_intervention_services
   )
 
-# convert from long to wide matrix
-synth_matrix <- synthdid::panel.matrices(panel = df_synth)
-
-# estimate the DiD
-did_estimate <- synthdid::synthdid_estimate(
-  Y = synth_matrix$Y,
-  N0 = synth_matrix$N0,
-  T0 = synth_matrix$T0
-)
-
-# estimate coords for annotation
-annotation_x <-
-  .yearmon_intervention +
-  ((.yearmon_period[2] - .yearmon_intervention) / 2) +
-  2 / 12
-annotation_y <-
-  df_synth |>
-  dplyr::filter(calc_month >= .yearmon_intervention) |>
-  dplyr::summarise(y_val = quantile(o1_rate, 0.39)) |>
-  dplyr::pull(y_val)
-
-# find the CI (NB, bootstrap process takes a while)
-se = sqrt(stats::vcov(did_estimate, method = "placebo"))
-
-# plot the DiD
-did_estimate |>
-  synthdid::synthdid_plot(
-    line.width = 1,
-    point.size = 2,
-    overlay = 0,
-    treated.name = "Devon",
-    trajectory.alpha = 0.5,
-    onset.alpha = 0.6,
-    diagram.alpha = 1
-  ) +
-  ggplot2::theme_minimal(base_size = 20) +
-  ggplot2::scale_y_continuous(labels = scales::label_percent(accuracy = 0.5)) +
-  zoo::scale_x_yearmon() +
-  ggplot2::geom_label(
-    data = data.frame(
-      x = annotation_x,
-      y = annotation_y,
-      lbl = glue::glue(
-        "DiD (95% CI)\n",
-        "{round(did_estimate * 100, 1)}% (",
-        "{round((did_estimate - 1.96 * se) * 100, 1)}%, ",
-        "{round((did_estimate + 1.96 * se) * 100, 1)}%)"
-      )
-    ),
-    mapping = ggplot2::aes(x = x, y = y, label = lbl),
-    hjust = 0,
-    fill = adjustcolor("white", alpha.f = 0.5),
-    border.colour = adjustcolor("#2c2825", alpha.f = 0.1)
-  ) +
-  ggplot2::theme(legend.position = "bottom") +
-  ggplot2::scale_colour_manual(
-    values = c(
-      "Devon" = scales::col_darker("#f9bf07", amount = 5),
-      "synthetic control" = "#5881c1"
-    )
-  ) +
-  ggplot2::labs(
-    title = "Outcome 1",
-    subtitle = stringr::str_wrap(
-      "Devon performed 0.6% higher than expected, but the difference is not statistically significant",
-      50
-    )
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .ods_treated = .ods_treated,
+    str_treated = "Devon",
+    summary_spec = "Main model (baseline)",
+    summary_outcome = "Outcome 1",
+    str_outcome = "o1_rate",
+    labs_title = "Outcome 1: discharges with 5+ treatment contacts",
+    labs_subtitle = "Devon performed 0.6% higher than expected, but the difference is not statistically significant"
   )
 
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  did$did_summary
+
+# display the plot
+did$did_plot
 ```
 
 **What the chart displays**
@@ -1907,6 +1891,69 @@ did_estimate |>
 Devon's orange line rises more sharply than the dotted counterfactual, indicating a positive impact of the interventions. The estimated gain is 0.6% above the expected value. The 95% confidence interval spans -10% to + 11%, meaning the true effect could be slightly negative or moderately positive. Consequently, the result is not statistically significant.
 
 ```{r}
+#| label: synthdid - outcome 2
+#| fig-height: 8
+#| warning: false
+
+set.seed(12345)
+
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df,
+    outcome = "o2_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = .ods_treated,
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .ods_treated = .ods_treated,
+    str_treated = "Devon",
+    summary_spec = "Main model (baseline)",
+    summary_outcome = "Outcome 2",
+    str_outcome = "o2_rate",
+    labs_title = "Outcome 2: discharges with 2 to 4 treatment contacts",
+    labs_subtitle = "Devon performed 0.4% better than expected, but the difference is not statistically significant"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# display the plot
+did$did_plot
+```
+
+**How to read the parallelogram**
+
+-   Top edge (dotted) - what Devon's trend would have looked like without any interventions (the counterfactual)
+
+-   Bottom edge (blue) - trajectory of the synthetic control from the pre- to post-intervention period
+
+-   Orange line - Devon's observed post-intervention trend.
+
+Devon's orange line falls more sharply than the dotted counterfactual, indicating a positive impact of the interventions. The estimated difference is 0.4% below the expected value. The 95% confidence interval spans -8% to + 7%, meaning the true effect could be negative or positive. Consequently, the result is not statistically significant.
+
+### Summary
+
+```{r}
+#| label: synthdid - summary table
+did_overall |>
+  display_did_summary_in_gt(sensitivity_summary = FALSE)
+```
+
+
+
+```{r}
 #| label: interpretation help 2
 
 # work out the total discharges in 12 months preceeding
@@ -1933,23 +1980,294 @@ people_benefit <-
 ::: callout-tip
 ## Interpretation
 
-The chart clearly shows Devon's post-intervention performance exceeding the synthetic counterfactual, but the wide confidence interval prevents a definitive claim of effectiveness.
+The charts clearly shows Devon's post-intervention performance exceeding the synthetic counterfactual, but the wide confidence interval prevents a definitive claim of effectiveness.
 
-Assuming the 0.6% gain is real, it translates to an additional **`r people_benefit` people** receiving the more intensive therapy per year (based on Devon's annual discharge volume of `r scales::comma(total_discharges)` from June 2024 to May 2025).
+Assuming the 0.6% gain for Outcome 1 is real, it translates to an additional **`r people_benefit` people** receiving the more intensive therapy per year (based on Devon's annual discharge volume of `r scales::comma(total_discharges)` from June 2024 to May 2025).
 :::
 
 ### Sensitivity analysis
 
-Any alternative specifications tried (different donor pools) and whether conclusions change - limit to the matched cohort from ces - what's the DID and CI? - limit the post-implementation data to ? Jan 2025 - what's the DID and CI?
+In the previous analysis we supplied {synthdid} with the outcomes for *all* Talking Therapy services that were not involved in any known adherence-improving intervention. This full set served as the donor pool for constructing a counterfactual that best matches Devon's pre-intervention outcome trends.
 
-Including all available control services increases the sample size, which can enhance the statistical power of the estimates. This is particularly important in cases such as this where the treatment group is small.
+We adopted this approach because synthetic-control methods require a reasonably large donor pool to generate a reliable weighted counterfactual. However, the [propensity score matching](#propensity-score-matching) and [coarsened exact matching](#coarsened-exact-matching-nov-2022) sections showed that the donor pool varies across our matching variables.
 
-The {synthdid} method is designed to leverage the entire pool of control units to construct a synthetic control group that best approximates the treatment group.
+In this section we examine how restricting the donor pool influences the DiD estimates and assess whether our original conclusions remain robust or become sensitive to these restrictions.
+
+#### Using matches from PSM
+What impact does using the matches returned from the [propensity score matching (PSM)](#propensity-score-matching) section have?
+
+```{r}
+#| label: synthdid - sensitivity PSM - outcome 1
+#| fig-height: 6
+#| warning: false
+
+set.seed(12345)
+
+# get a dataset that is ready for synthetic DiD using
+.ods_controls = c("DA6", "GDA01", "NDC05", "NDC17", "RWK53")
+
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df,
+    outcome = "o1_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = .ods_treated,
+    ods_controls = .ods_controls,
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .ods_treated = .ods_treated,
+    str_treated = "Devon",
+    summary_spec = "Alternative 1 - using PSM matches",
+    summary_outcome = "Outcome 1",
+    str_outcome = "o1_rate",
+    labs_title = "Outcome 1: discharges with 5+ treatment contacts",
+    labs_subtitle = "Devon performed 2.4% worse than expected"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# display the plot
+did$did_plot
+```
+
+Devon performs **2.4% lower** than the synthetic control expectation, and this difference is statistically significant. However, the synthetic control exhibits considerable variability both before and after the intervention, which adds uncertainty to the interpretation of the results.
+
+```{r}
+#| label: synthdid - sensitivity PSM - outcome 2
+#| fig-height: 6
+#| warning: false
+
+set.seed(12345)
+
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df,
+    outcome = "o2_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = .ods_treated,
+    ods_controls = .ods_controls,
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .ods_treated = .ods_treated,
+    str_treated = "Devon",
+    summary_spec = "Alternative 1 - using PSM matches",
+    summary_outcome = "Outcome 2",
+    str_outcome = "o2_rate",
+    labs_title = "Outcome 2: discharges with 2 to 4 treatment contacts",
+    labs_subtitle = "Devon performed 0.4% worse than expected"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# display the plot
+did$did_plot
+```
+
+This analysis shows Devon performed **0.4% above** the synthetic control expectation. However, the synthetic control's high variability limits confidence in this modest effect.
+
+#### Using matches from CEM
+What impact does using the matches returned from the [coarsened exact matching (CEM)](#coarsened-exact-matching-nov-2022) section have?
+
+```{r}
+#| label: synthdid - sensitivity CEM - outcome 1
+#| fig-height: 6
+#| warning: false
+
+set.seed(12345)
+
+# get a dataset that is ready for synthetic DiD using
+.ods_controls = c("RKL07", "RKL42", "RQYPR", "RRE", "RX3YE", "RXL")
+
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df,
+    outcome = "o1_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = .ods_treated,
+    ods_controls = .ods_controls,
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .ods_treated = .ods_treated,
+    str_treated = "Devon",
+    summary_spec = "Alternative 2 - using CEM matches",
+    summary_outcome = "Outcome 1",
+    str_outcome = "o1_rate",
+    labs_title = "Outcome 1: discharges with 5+ treatment contacts",
+    labs_subtitle = "Devon performed 2.8% better than expected, but the difference is not statistically significant"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# display the plot
+did$did_plot
+```
+
+The headline figure - 2.8% higher performance - is misleading. In mid-2023 the synthetic control series falls sharply because two donor pool services experienced sudden drops. This dip pulls the synthetic control average down, making Devon's relative advantage appear larger than it truly is.
+
+```{r}
+#| label: synthdid - sensitivity CEM - outcome 2
+#| fig-height: 6
+#| warning: false
+
+set.seed(12345)
+
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df,
+    outcome = "o2_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = .ods_treated,
+    ods_controls = .ods_controls,
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .ods_treated = .ods_treated,
+    str_treated = "Devon",
+    summary_spec = "Alternative 2 - using CEM matches",
+    summary_outcome = "Outcome 2",
+    str_outcome = "o2_rate",
+    labs_title = "Outcome 2: discharges with 2 to 4 treatment contacts",
+    labs_subtitle = "TBC"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# display the plot
+did$did_plot
+```
+
+These anomalous spikes in mid-2023 also warp the post-intervention synthetic control series, just as they did for Outome 1.
+
+#### Summary
+
+```{r}
+#| label: synthdid - sensitivity - summary table
+#| cache: false
+did_overall |>
+  display_did_summary_in_gt(sensitivity_summary = TRUE)
+```
+
+The sensitivity analyses suggest that the main results are broadly credible, but they also highlight were the evidence is fragile.
+
+To assess the robustness to the choice of donor pool we re-ran the synthetic difference-in-differences analyses using the matched services identified using two methods of matching.
+
+*Propensity score matching (PSM)* - When Devon is compared with the services selected by the PSM algorithm, the direction of effect flips: Devon appears to perform **significantly worse** than its synthetic control. This result is dubious because the synthetic control series shows extreme variability, likely reflecting the poor qualitiy matches produced by the PSM step.
+
+*Coarsened exact matching (CEM)* - Using the CEM-derived donor pool reproduces the main findings: Devon tends to perform **slightly better** than its peers, but the confidence intervals are wide enough that we cannot reject the null hypothesis of no difference. CEM forces exact balance on key covariates, reducing heterogeneity among donor units
+
+Overall, the evidence points to a modest, possibly positive effect for Devon, but the result remains sensitive to donor-pool construction and the inherent noise in the synthetic control.
+
+# Conclusions
+
+We estimated the impact of Devon's interventions using two complimentary DiD approaches:  
+
+-   **Manual DiD** - Devon was compared with two services selected through a coarsened exact matching (CEM) procedure
+
+-   **Synthetic control DiD** - Devon was contrasted with a synthetic counterfactual build from all available donor services.
+
+For each approach we performed a series of sensitivity checks, for example, removing anomalous months, expanding the control pool, swapping CEM for PSM matches.
+
+**No robust, consistent effect appears across the different specifications.** The few statistically significnat estimates are **highly sensitive** to modelling choices; once the analysis is made more conservative the significance disappears.
+
+Because the evidence is not stable, any claim that the intervention produced a meaningful improvement, or deterioration, should be treated with caution.
+
+**Possible signal** 
+
+Both the manual DiD (point estimate ~ 4.9%) and the synthetic control DiD (point estimate 0.6%) point in the same direction, suggesting a modest positive effect. However, the confidence intervals are wide and overlap zero, so this 'hint' cannot be recorded as conclusive.
+
+**Recommendations for future evaluation**
+
+To obtain a definitive assessment of Devon's digital-resource and communication interventions, a more rigorous experimental design is needed: 
+
+1. Identify a cohort of comparable services using the matching variables described in this report  
+
+2. Randomly assign half of the services to receive the full intervention package (FAQ pages, explanatory animations, assessment video, communication review, DNA rate tracking) and the other half to serve as controls  
+
+3. Track outcomes prospectively over and adequate post-intervention horizon  
+
+4. Analyust the data with a pre-registered DiD or mixed-effects model, complemented by placebo tests and robustness checks  
+
+Such a randomised controlled design would eliminate the donor-pool and specification sensitivities that currently limit inference, allowing a clear determination of whether Devon's interventions truly improve client preparation and engagement.
 
 # Limitations
 
-List the limitations of this study.
+The limitations for this analysis include:
 
--   Only one intervention site. Results in greater uncertainty of the treatment effect - resulting in wider confidence intervals. This means it takes a much larger treatment effect to be 'statistically significant' than a smaller treatment measured across multiple services.
+**Only one treated unit**
 
--   Removed services from the donor pool where there is a known intervention. However, not all interventions may be known and we may be comparing Devon to
+The causal estimate rests on a single time-series (Devon). The result is that standard errors are large which translates to wide confidence intervals and a much larger treatment effect is required to reach statistical significance as a consequence.
+
+**Possible hidden interventions in the donor pool**
+
+We removed services with known interventions from the group of control services, but undisclosed changes may still be present.
+
+Comparing Devon to other services that are also improving attenuates the estimated effect, biasing the results toward zero.
+
+**Time-varying confounders**
+
+Two control services experienced abrupt shocks in mid-2023 which distorted the post-implementaton average performance and synthetic control trajectory, increased variability and weakened the credibility of the counterfactual.
+
+**No single treatment date**
+
+Devon's rollout was staggered across several components and spread over twelve moonths. As a result the "treated" period is diffuse, making it difficult to define a clean pre-/post-intervention split and to isolate the effect of any one component.
+
+**Limited pre-intervention observations**
+
+There are only 11 months of pre-treatment data versus 12 months of treatment and 18 months of post-treatment. Fewer pre-period points reduce confidence in the parallel-trend (or pre-fit) assumption and make the estimate more sensitive to short-term fluctations.
+
+**Synthetic control sensitivity to outliers**
+
+The CEM-derived donor pool contained services with extreme spikes. Outliers can dominate the weighted synthetic control, producing unstable counterfactuals and potentially misleading effect sizes.
+
+Take together, these limitations suggest that the estimated impacts should be interpreted with caution and highlight the need for a more rigorous, preferably experiemental, design in future evaluations.
