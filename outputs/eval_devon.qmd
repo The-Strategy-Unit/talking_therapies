@@ -26,7 +26,7 @@ brand: _brand.yml
 css: styles.css
 execute:
   cache: true
-#bibliography: references.bib
+bibliography: references.bib
 ---
 
 ```{r}
@@ -514,7 +514,7 @@ In mid-to-late 2023 a few services recorded 100% of their completed referrals in
 
 While the overall picture is improving, the wide spread among individual services suggests targeted interventions are needed to help the higher-percentage providers move more referrals toward the five-contact benchmark.
 
-# Matching
+# Matching variables
 
 The aim of matching is to pair our intervention Talking Therapies service, Talkworks Devon, with one more untreated services that have similar charactersitics, creating a comparison group that mimics a randomised experiment. This reduces bias and makes it easier to estimat the intervention's effect from observational data.
 
@@ -1148,7 +1148,9 @@ plot_list[[5]]
 
 ### Summary
 
-None of these five matched services demonstrated parallel trends with Devon in the pre-intervention period, except for Wirral, where there appeared to be parallel trends for Outcome 2.
+None of the five matched services showed parallel trends with Devon during the pre-intervention period - except for Wirral, which displayed parallel trends only for Outcome 2. Because we have just a single control service that applies to a single outcome, there is little justification for continuing with the current analysis.
+
+We therefore switch to an alternative method for identifying matches for Deveon: coarsened exact matching.
 
 ## Coarsened exact matching - Nov 2022
 
@@ -1321,11 +1323,443 @@ plot_list[[5]]
 plot_list[[6]]
 ```
 
-### Summary
+### Matching summary
 
 Six matched Talking Therapies services were matched with Devon. Two of these, *Ealing Talking Therapies* (RKL07) and *Hounslow Talking Therapies* (RKL42) had pre-intervention trends that visually match those of Devon's for both outcome measures.
 
+### Analysis
+
+Now we have matched Devon with two other Talking Therapy services and assessed their likelihood of meeting the parallel trends assumption based on their pre-intervention data, let us review how the full time series looks for this group of services.
+
+#### Outcome 1
+
+```{r}
+#| label: cem - spaghetti plot1 outcome 1
+#| fig-height: 6
+
+# get a df with the details for our matched services
+df_analysis <-
+  df |>
+  dplyr::filter(
+    # limit to activity between Jan 2022 and May 2025
+    dplyr::between(
+      calc_month,
+      zoo::as.yearmon("Jan 2022"),
+      zoo::as.yearmon("May 2025")
+    ),
+    # limit to our matched services
+    # ods_code %in% c("RWV", "RKL07", "RKL42", "RQYPR", "RRE", "RX3YE", "RXL")
+    # limit to our matched services with parallel trends
+    ods_code %in% c("RWV", "RKL07", "RKL42")
+  ) |>
+  # simplify the data
+  dplyr::select(ods_code, calc_month, o1_rate, o2_rate) |>
+  # create treatment and post indicators
+  dplyr::mutate(
+    treated = dplyr::if_else(ods_code == "RWV", 1L, 0L),
+    post = dplyr::if_else(calc_month >= zoo::as.yearmon("Dec 2022"), 1L, 0L),
+    line_colour = dplyr::if_else(
+      ods_code == "RWV",
+      "#f9bf07",
+      adjustcolor("#9d928a", alpha.f = 0.5)
+    )
+  )
+
+# show a spaghetti plot for these services
+p <-
+  plot_spaghetti_plot(
+    df = df_analysis,
+    str_outcome = "o1_rate",
+    ods_intervention = "RWV",
+    str_title = "Outcome 1: discharges with 5+ treatment contacts",
+    str_subtitle = "Two services (RKL07 & RKL42) display abnormal results mid-2023",
+    zoo_intervention = zoo::as.yearmon("Dec 2022"),
+    bool_intervention = TRUE
+  )
+p
+```
+
+**What this chart shows:**
+
+-   Performance against outcome 1 is shown on the y-axis and time is along the x-axis.
+
+-   There are three time series displayed, one for Devon, shown in orange, and one for each of the two of our matched services, shown in grey.
+
+-   Each series is identified by its ODS code at the end of the data in May 2025.
+
+-   The dotted line represents the start of Devon's interventions in December 2022.
+
+**Key observations:** The control services exhibit abnormal dips in Outcome 1 performance:
+
+-   RKL07 fell from 49% in June 2023 to just 0% in July 2023
+
+-   RKL42 fell from 47% in July 2023 to just 12% in August 2023
+
+The brief, but steep declines would bias the post-implementation estimates upward for Devon. To avoid this bias, the low-performance points for RKL07 (July 2023) and RKL42 (August 2023) should be excluded from the dataset.
+
+#### Outcome 2
+
+```{r}
+#| label: cem - spaghetti plot1 outcome 2
+#| fig-height: 6
+# show a spaghetti plot for outcome 2
+p <-
+  plot_spaghetti_plot(
+    df = df_analysis,
+    str_outcome = "o2_rate",
+    ods_intervention = "RWV",
+    str_title = "Outcome 2: discharges with 2 to 4 treatment contacts",
+    str_subtitle = "Two services (RKL07 & RKL42) display abnormal results mid-2023",
+    zoo_intervention = zoo::as.yearmon("Dec 2022"),
+    bool_intervention = TRUE
+  )
+p
+```
+
+**Key observations:**
+
+The trend for this outcome is the reverse of what we observed for Outcome 1. In July 2023, RKL07 exhibits a pronounced spike, and in August 2023, RKL42 shows a similarly sharp increase. These spikes indicate that, during these months, most discharges failed to meet the minimum goal of five treatment contacts.
+
+Here are the two outcomes excluding the anomalous months:
+
+```{r}
+#| label: cem - spaghetti plot2 outcomes 1 and 2
+#| fig-height: 6
+
+# get a df excluding the problematic months for the controls
+df_analysis2 <-
+  df_analysis |>
+  dplyr::filter(
+    !(ods_code == "RKL07" & calc_month == zoo::as.yearmon("Jul 2023")),
+    !(ods_code == "RKL42" & calc_month == zoo::as.yearmon("Aug 2023"))
+  )
+
+# show as a spaghetti plot
+plot_spaghetti_plot(
+  df = df_analysis2,
+  str_outcome = "o1_rate",
+  ods_intervention = "RWV",
+  str_title = "Outcome 1: discharges with 5+ treatment contacts",
+  str_subtitle = "These time series now seem less likely to bias the analysis",
+  zoo_intervention = zoo::as.yearmon("Dec 2022"),
+  bool_intervention = TRUE
+)
+
+# show as a spaghetti plot
+plot_spaghetti_plot(
+  df = df_analysis2,
+  str_outcome = "o2_rate",
+  ods_intervention = "RWV",
+  str_title = "Outcome 2: discharges with 2 to 4 treatment contacts",
+  str_subtitle = "These time series now seem less likely to bias the analysis",
+  zoo_intervention = zoo::as.yearmon("Dec 2022"),
+  bool_intervention = TRUE
+)
+```
+
+#### Difference-in-Differences (DiD)
+
+The results of the DiD analyses are presented below:
+
+```{r}
+#| label: ced - did table
+# conduct did analysis on the two matched services
+did <-
+  get_manual_did_estimation(
+    df = df_analysis2,
+    ods_intervention = "RWV",
+    zoo_intervention = zoo::as.yearmon("Dec 2022")
+  )
+
+# add to a combined summary (for sensitivity analysis)
+did_overall <-
+  did |>
+  dplyr::mutate(specification = "Main model (baseline)")
+
+# display
+did |>
+  dplyr::select(
+    outcome,
+    estimate,
+    conf.low,
+    conf.high,
+    p.value
+  ) |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::fmt_percent(
+    columns = c(estimate, conf.low, conf.high),
+    decimals = 2
+  ) |>
+  gt::cols_merge(
+    columns = c(conf.low, conf.high),
+    pattern = "{1} to {2}"
+  ) |>
+  gt::cols_label(
+    outcome = "Outcome",
+    estimate = "Difference-in-Differences (DiD) estimate",
+    conf.low = "95% confidence interval"
+  ) |>
+  gt::tab_style(
+    style = list(gt::cell_text(weight = "bold")),
+    locations = gt::cells_body(
+      columns = c(estimate, conf.low),
+      rows = p.value <= 0.05
+    )
+  ) |>
+  gt::cols_hide(columns = p.value) |>
+  gt::tab_source_note(gt::md(
+    "Statistically significant findings are shown in **bold**"
+  ))
+```
+
+This table summarises the Difference-in-Differences analysis for Devon's interventions using the two controls identified using the Coarsened Exact Matching process and which exhibited parallel trends.
+
+For outcome 1, Devon's observed rate is about **4.9% higher** than what the matched controls would predict, and the 95% confidence interval (1.2% to 8.6%) indicates the effect is **statistically significant**.
+
+For outcome 2, Devon's rate is about **3.5% lower** than expected, yet the interval (-7.2% to +0.3%) also includes zero, indicating **no statistically reliable difference**.
+
+```{r}
+#| label: interpretation help 1
+
+# work out the total discharges in 12 months preceeding
+total_discharges <-
+  df |>
+  dplyr::filter(
+    ods_code == "RWV",
+    dplyr::between(
+      calc_month,
+      zoo::as.yearmon("Jun 2024"),
+      zoo::as.yearmon("May 2025")
+    )
+  ) |>
+  dplyr::summarise(
+    total = sum(o1_denom_discharges_count, na.rm = TRUE)
+  ) |>
+  dplyr::pull(total)
+
+# work out the expected number of people to benefit from the uplift
+people_benefit <- floor(total_discharges * 0.049)
+```
+
+::: callout-tip
+## Interpretation
+
+These figures clearly present Devon's post-intervention performance exceeding the counterfactual based on the matched services for both outcomes, but the wide confidence interval in Outcome 2 prevents a definitive claim of effectiveness meaning only Outcome 1 is statistically significant.
+
+Assuming the 4.9% gain is real, it translates to an additional **`r people_benefit` people** receiving the more intensive therapy per year (based on Devon's annual discharge volume of `r scales::comma(total_discharges)` from June 2024 to May 2025).
+:::
+
+#### Sensitivity analysis
+
+Two important decisions were made that led to the above analytical findings:
+
+1.  **Parallel trend selection** - We inspected the six controls series visually and excluded four that did not follow Devon's pre-intervention trend.
+
+2.  **Anomalous month removal** - For the two remaining matched services we omitted the two months with extreme values, which yielded more stable control performance across outcomes.
+
+Below we reassess the findings after relaxing each of these decisions to determine whether the original conclusions hold or are sensitive to these analytical choices.
+
+##### Keeping anomalous months
+
+What impact does keeping the extreme values in the time series have?
+
+```{r}
+#| label: ced - sensitivity - anomalous months
+# conduct did analysis on the two matched services
+did <-
+  get_manual_did_estimation(
+    df = df_analysis,
+    ods_intervention = "RWV",
+    zoo_intervention = zoo::as.yearmon("Dec 2022")
+  )
+
+# add to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did |>
+      dplyr::mutate(specification = "Alternative 1 - keep anomalous months")
+  )
+
+# show as a table
+did |>
+  dplyr::select(
+    outcome,
+    estimate,
+    conf.low,
+    conf.high,
+    p.value
+  ) |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::fmt_percent(
+    columns = c(estimate, conf.low, conf.high),
+    decimals = 2
+  ) |>
+  gt::cols_merge(
+    columns = c(conf.low, conf.high),
+    pattern = "{1} to {2}"
+  ) |>
+  gt::cols_label(
+    outcome = "Outcome",
+    estimate = "Difference-in-Differences (DiD) estimate",
+    conf.low = "95% confidence interval"
+  ) |>
+  gt::tab_style(
+    style = list(gt::cell_text(weight = "bold")),
+    locations = gt::cells_body(
+      columns = c(estimate, conf.low),
+      rows = p.value <= 0.05
+    )
+  ) |>
+  gt::cols_hide(columns = p.value) |>
+  gt::tab_source_note(gt::md(
+    "Statistically significant findings are shown in **bold**"
+  ))
+```
+
+For outcome 1, Devon's observed rate is **6.7% higher** than what the matched controls would predict, and the 95% confidence interval (2.3% to 11.1%) indicates the effect is **statistically significant**.
+
+For outcome 2, Devon's observed rate is **5.5% lower** than what the matched controls would predict, and the 95% confidence interval (-10.2% to -0.8%) indicates the effect is **statistically significant**.
+
+##### Using all six controls
+
+What impact does using all six matched control services have on the findings?
+
+```{r}
+#| label: ced - sensitivity - all six controls
+
+# get a df with the details for our matched services
+df_analysis <-
+  df |>
+  dplyr::filter(
+    # limit to activity between Jan 2022 and May 2025
+    dplyr::between(
+      calc_month,
+      zoo::as.yearmon("Jan 2022"),
+      zoo::as.yearmon("May 2025")
+    ),
+    # limit to our matched services
+    ods_code %in% c("RWV", "RKL07", "RKL42", "RQYPR", "RRE", "RX3YE", "RXL")
+  ) |>
+  # simplify the data
+  dplyr::select(ods_code, calc_month, o1_rate, o2_rate) |>
+  # create treatment and post indicators
+  dplyr::mutate(
+    treated = dplyr::if_else(ods_code == "RWV", 1L, 0L),
+    post = dplyr::if_else(calc_month >= zoo::as.yearmon("Dec 2022"), 1L, 0L),
+    line_colour = dplyr::if_else(
+      ods_code == "RWV",
+      "#f9bf07",
+      adjustcolor("#9d928a", alpha.f = 0.5)
+    )
+  )
+
+# conduct did analysis on the two matched services
+did <-
+  get_manual_did_estimation(
+    df = df_analysis,
+    ods_intervention = "RWV",
+    zoo_intervention = zoo::as.yearmon("Dec 2022")
+  )
+
+# add to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did |>
+      dplyr::mutate(specification = "Alternative 2 - use all six controls")
+  )
+
+# display as a table
+did |>
+  dplyr::select(
+    outcome,
+    estimate,
+    conf.low,
+    conf.high,
+    p.value
+  ) |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::fmt_percent(
+    columns = c(estimate, conf.low, conf.high),
+    decimals = 2
+  ) |>
+  gt::cols_merge(
+    columns = c(conf.low, conf.high),
+    pattern = "{1} to {2}"
+  ) |>
+  gt::cols_label(
+    outcome = "Outcome",
+    estimate = "Difference-in-Differences (DiD) estimate",
+    conf.low = "95% confidence interval"
+  ) |>
+  gt::tab_style(
+    style = list(gt::cell_text(weight = "bold")),
+    locations = gt::cells_body(
+      columns = c(estimate, conf.low),
+      rows = p.value <= 0.05
+    )
+  ) |>
+  gt::cols_hide(columns = p.value) |>
+  gt::tab_source_note(gt::md(
+    "Statistically significant findings are shown in **bold**"
+  ))
+```
+
+For outcome 1, Devon's observed rate is **2.6% higher** than what the matched controls would predict, yet the interval (-0.3% to 5.6%) also includes zero, indicating **no statistically reliable difference**.
+
+For outcome 2, Devon's observed rate is **1.2% lower** than what the matched controls would predict, and the 95% confidence interval (-3.4% to -1.2%) indicates the effect is **statistically significant**.
+
+##### Summary
+
+```{r}
+# display a summary table
+did_overall |>
+  # simplify
+  dplyr::select(
+    specification,
+    outcome,
+    did = estimate,
+    p.value,
+    conf.low,
+    conf.high
+  ) |>
+  # group by the sensitivity test
+  dplyr::group_by(specification) |>
+  gt::gt(row_group_as_column = TRUE) |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::fmt_percent(columns = c(did, conf.low, conf.high), decimals = 2) |>
+  gt::cols_merge(columns = c(conf.low, conf.high), pattern = "{1} to {2}") |>
+  gt::tab_style(
+    style = list(gt::cell_text(weight = "bold")),
+    locations = gt::cells_body(
+      columns = c(did, conf.low),
+      rows = p.value <= 0.05
+    )
+  ) |>
+  gt::cols_hide(columns = p.value) |>
+  gt::cols_label(
+    outcome = "Outcome",
+    did = "DiD estimate",
+    conf.low = "95% confidence interval"
+  ) |>
+  gt::tab_source_note(gt::md(
+    "Statistically significant findings are shown in **bold**"
+  ))
+```
+
+These sensitivity tests indicate the main findings are **fragile**.
+
+*When the two anomalous months are retained*, the estimated treatement effect becomes larger for both outcomes and reaches statistical significance. The extreme spikes in the control series pull the counterfactual down for Outcome 1 and up for Outcome 2, thereby exaggerating the gap between the observed Devon trend and its predicted trend.
+
+*When all six matched services are used as controls*, both outcomes lose significance. Adding more controls narrows the confidence intervals and reduces the point estimates, reflecting the greater precision that comes from a larger control pool. However, some of the services did not follow parallel pre-intervention trends, which dampens the apparent effect in Devon's favour.
+
 ## Synthetic Difference-in-Differences (DiD)
+
+The preceeding section highlights the challenges of finding genuine control services that closely match Devon's profile and satisfy the parallel-trends assumption. Because the estimated treatment effect proved sensitive to several analytical choices, we turn to alternative method: synthetic controls.
 
 Synthetic Difference-in-Differences (Synthetic DiD) blends two ideas: the traditional difference-in-differences method and the synthetic control technique.
 
@@ -1333,10 +1767,15 @@ First it builds a "synthetic" version of the control group by assigning weights 
 
 Then it compares the outcomes after the intervention between the treated unit and its synthetic counterpart. By creating a better-matched control, Synthetic DiD helps produce more reliable estimates of a treatment's effect, especially when the parallel-trend assumption is weak.
 
-### Description
-TO DO
+The [{synthdid}](https://synth-inference.github.io/synthdid/) package was used to conduct these Synthetic DiD analyses. This uses the method described by [@arkhangelsky2019] to combine the strengths of synthetic-control weighting with the traditional DiD framework. {synthdid} delivers unbiased treatment-effect estimates, even when the parallel-trends assumption is violated.
 
-Need to describe the package used, the cohort of donor services (removing those known to have implemented a change to improve adherence, need activity dating back to Jan 2022, need balanced panel - so removing sites where there is a gap in outcome - even if just one month ) - ideally enumerate these.
+In this approach will build a 'donor pool' of all Talking Therapy services to create a synthetic counterfactual that estimates how Devon would have performed without its interventions.
+
+-   As with the earlier section, we first exclude any service that has its own adherence-improvement intervention
+
+-   The {synthdid} package requires a balanced panel; every service in the donor pool must have data for every month from January 2022 through May 2025.
+
+-   Consequently, any service with even a single missing month is dropped from the donor pool.
 
 ```{r}
 #| label: synthdid
@@ -1371,9 +1810,6 @@ did_estimate <- synthdid::synthdid_estimate(
   N0 = synth_matrix$N0,
   T0 = synth_matrix$T0
 )
-
-# output a summary
-# summary(did_estimate)
 
 # estimate coords for annotation
 annotation_x <-
@@ -1471,7 +1907,7 @@ did_estimate |>
 Devon's orange line rises more sharply than the dotted counterfactual, indicating a positive impact of the interventions. The estimated gain is 0.6% above the expected value. The 95% confidence interval spans -10% to + 11%, meaning the true effect could be slightly negative or moderately positive. Consequently, the result is not statistically significant.
 
 ```{r}
-#| label: interpretation help
+#| label: interpretation help 2
 
 # work out the total discharges in 12 months preceeding
 total_discharges <-
@@ -1499,22 +1935,21 @@ people_benefit <-
 
 The chart clearly shows Devon's post-intervention performance exceeding the synthetic counterfactual, but the wide confidence interval prevents a definitive claim of effectiveness.
 
-Assuming the 0.6% gain is real, it translates to an additional **`r people_benefit` people** receiving the more intensive therapy (based on Devon's annual discharge volume of `r scales::comma(total_discharges)` from June 2024 to May 2025).
-
+Assuming the 0.6% gain is real, it translates to an additional **`r people_benefit` people** receiving the more intensive therapy per year (based on Devon's annual discharge volume of `r scales::comma(total_discharges)` from June 2024 to May 2025).
 :::
 
-## Sensitivity analysis
-Any alternative specifications tried (different donor pools) and whether conclusions change
-- limit to the matched cohort from ces - what's the DID and CI?
-- limit the post-implementation data to ? Jan 2025 - what's the DID and CI?
+### Sensitivity analysis
+
+Any alternative specifications tried (different donor pools) and whether conclusions change - limit to the matched cohort from ces - what's the DID and CI? - limit the post-implementation data to ? Jan 2025 - what's the DID and CI?
 
 Including all available control services increases the sample size, which can enhance the statistical power of the estimates. This is particularly important in cases such as this where the treatment group is small.
 
 The {synthdid} method is designed to leverage the entire pool of control units to construct a synthetic control group that best approximates the treatment group.
 
-## Limitations
+# Limitations
+
 List the limitations of this study.
 
-* Only one intervention site. Results in greater uncertainty of the treatment effect - resulting in wider confidence intervals. This means it takes a much larger treatment effect to be 'statistically significant' than a smaller treatment measured across multiple services.
+-   Only one intervention site. Results in greater uncertainty of the treatment effect - resulting in wider confidence intervals. This means it takes a much larger treatment effect to be 'statistically significant' than a smaller treatment measured across multiple services.
 
-* Removed services from the donor pool where there is a known intervention. However, not all interventions may be known and we may be comparing Devon to 
+-   Removed services from the donor pool where there is a known intervention. However, not all interventions may be known and we may be comparing Devon to
