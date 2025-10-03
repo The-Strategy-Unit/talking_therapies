@@ -1566,7 +1566,7 @@ display_did_summary_in_gt <- function(df, sensitivity_summary = FALSE) {
     # format the numbers
     gt::fmt_percent(
       columns = c(estimate, conf.low, conf.high),
-      decimals = 2
+      decimals = 1
     ) |>
     # create the 95% CI
     gt::cols_merge(
@@ -1595,8 +1595,8 @@ display_did_summary_in_gt <- function(df, sensitivity_summary = FALSE) {
     )) |>
     # adjust spacing
     gt::cols_width(
-      outcome ~ gt::pct(20),
-      estimate ~ gt::pct(20)
+      outcome ~ gt::pct(15),
+      estimate ~ gt::pct(25)
     )
 
   # return the table
