@@ -11,7 +11,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-![](images/clipboard-2445800079.png)
+![](images/clipboard-2445800079.png){fig-align="center" width="500"}
 
 # NHS Talking Therapies
 
