@@ -27,6 +27,9 @@ css: styles.css
 execute:
   cache: true
 bibliography: references.bib
+# params:
+#   ods_intervention: "RWV"
+#   download_from_teams: FALSE
 ---
 
 ```{r}
@@ -34,11 +37,29 @@ bibliography: references.bib
 #| context: setup
 #| cache: false
 
+# set up params (NB, the ones in YAML don't work well when running interactively)
+params <- list(
+  "ods_intervention" = "RWV",
+  "download_from_teams" = FALSE
+)
+
 # load in utility functions
 source(here::here('scripts', 'utility_functions.R'))
 
 # reference files ---
 # get a list of projects that have implemented something to improve adherence
+# part 1 - update the list of intervention projects (doesn't need updating everytime)
+if (params$download_from_teams) {
+  download_file_from_channel(
+    str_path = "2. Project delivery/Project plan/TT projects.xlsx",
+    str_dest = here::here(
+      'data',
+      'project',
+      'tt_intervention_projects_copy.xlsx'
+    )
+  )
+}
+# part 2
 df_intervention_services <- read_an_open_excel(
   path = here::here('data', 'project', 'tt_intervention_projects_copy.xlsx'),
   sheet = "intervention_projects"
@@ -49,7 +70,7 @@ df_interventions <- read_an_open_excel(
   path = here::here('data', 'project', 'tt_interventions_summary.xlsx'),
   sheet = 'interventions'
 ) |>
-  dplyr::filter(name == "Talkworks, Devon") |>
+  dplyr::filter(iapt_code == params$ods_intervention) |>
   dplyr::mutate(calc_month = zoo::as.yearmon(month))
 
 # load in matching variables
@@ -61,6 +82,7 @@ ls_labels <- get_variable_labels()
 ```
 
 # Executive summary
+
 The NHSE Behavioural Science team commissioned the Strategy Unit (SU) to deliver an independent evaluation of locally implemented interventions aimed at increasing engagement with the NHS Talking Therapies programme. The main research question is:
 
 > Are these interventions effective (versus doing nothing) at reducing the proportion of clients who complete a course of treatment (attend at least two treatment sessions), but then end treatment after only two, three or four treatment sessions?
@@ -69,7 +91,7 @@ The NHSE Behavioural Science team commissioned the Strategy Unit (SU) to deliver
 
 -   **No robust, consistent effect** was found for either a) the proportion of discharged referrals receiving five treatmtent contacts, or b) the proportion of referrals receiving between 2 and 4 treatment contacts.
 
--  **Possible modest positive signal**: point-estimates are slightly above zero, but confidence intervals are wide and the results are not statistically conclusive.
+-   **Possible modest positive signal**: point-estimates are slightly above zero, but confidence intervals are wide and the results are not statistically conclusive.
 
 **Implications**
 
@@ -85,12 +107,11 @@ The core assumption is that pre-intervention trends of the matched cohort and sy
 
 **Limitations and risks**
 
--   Devon is the only service to receive the interventions which results in significant uncertainty in the treatment effect  
+-   Devon is the only service to receive the interventions which results in significant uncertainty in the treatment effect
 
 -   Devon's rollout of the interventions was staggered across twelve months, making it difficult to define a clean pre- / post-treatment split and isolate the treatment effect
 
 -   Two control services experienced abrupt shocks in mid-2023 which distorted the post-implementation average performance, weakening the credibility of the estimated trajectory for Devon had they not implemented the interventions.
-
 
 # Project overview
 
@@ -266,7 +287,7 @@ Talkworks Devon IAPT referral discharges data is available from the beginning of
 
 df |>
   dplyr::filter(
-    ods_code == "RWV", # Talkworks, Devon
+    ods_code == params$ods_intervention, # Talkworks, Devon
   ) |>
   ggplot2::ggplot(
     mapping = ggplot2::aes(
@@ -312,7 +333,7 @@ Focusing on the period January 2022 to June 2025, the time series for each of th
 #| fig-height: 7
 df |>
   dplyr::filter(
-    ods_code == "RWV",
+    ods_code == params$ods_intervention,
     dplyr::between(
       x = calc_month,
       left = zoo::as.yearmon("Jan 2022"),
@@ -997,7 +1018,7 @@ df_matching_var_labels |>
 
 # Analysis
 
-## Propensity score matching
+## Propensity score matching {#propensity-score-matching}
 
 Using this list of matching variables we can now re-examine the propensity score matching results for Talkworks Devon.
 
@@ -1797,9 +1818,9 @@ The preceeding section highlights the challenges of finding genuine control serv
 
 Synthetic Difference-in-Differences (Synthetic DiD) blends two ideas: the traditional difference-in-differences method and the synthetic control technique.
 
--   First it builds a "synthetic" version of the control group by assigning weights to untreated units so that, before the intervention, this synthetic group looks just like the treated unit.  
+-   First it builds a "synthetic" version of the control group by assigning weights to untreated units so that, before the intervention, this synthetic group looks just like the treated unit.
 
--   Then it compares the outcomes after the intervention between the treated unit and its synthetic counterpart. By creating a better-matched control, Synthetic DiD helps produce more reliable estimates of a treatment's effect, especially when the parallel-trend assumption is weak.  
+-   Then it compares the outcomes after the intervention between the treated unit and its synthetic counterpart. By creating a better-matched control, Synthetic DiD helps produce more reliable estimates of a treatment's effect, especially when the parallel-trend assumption is weak.
 
 The [{synthdid}](https://synth-inference.github.io/synthdid/) package was used to conduct these Synthetic DiD analyses. This uses the method described by [@arkhangelsky2019] to combine the strengths of synthetic-control weighting with the traditional DiD framework. According to the paper this technique delivers unbiased treatment-effect estimates, even when the parallel-trends assumption is violated.
 
@@ -1810,6 +1831,8 @@ In this approach we will build a 'donor pool' of all Talking Therapy services to
 -   The {synthdid} package requires a balanced panel; every service in the donor pool must have data for every month from January 2022 through May 2025.
 
 -   Consequently, any service with even a single missing month is dropped from the donor pool.
+
+### Outcome 1
 
 ```{r}
 #| label: synthdid - outcome 1
@@ -1890,6 +1913,31 @@ did$did_plot
 
 Devon's orange line rises more sharply than the dotted counterfactual, indicating a positive impact of the interventions. The estimated gain is 0.6% above the expected value. The 95% confidence interval spans -10% to + 11%, meaning the true effect could be slightly negative or moderately positive. Consequently, the result is not statistically significant.
 
+#### Contribution plot
+
+```{r}
+#| label: synthdid - outcome 1 - contribution plot
+#| fig-height: 5
+#| warning: false
+synthdid::synthdid_units_plot(
+  estimates = did$did_estimate,
+  se.method = "placebo"
+) +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(size = 5))
+```
+
+This plot shows:   
+
+-   The synthetic estimate as the black horizontal line  
+
+-   Each control Talking Therapy service as a point, where servicees that contribute more weight to the synthetic model shown in larger size  
+
+-   The grey horizontal lines represent the end points of a 95% confidence interval
+
+A total of `r length(summary(did$did_estimate)$controls)` Talking Therapy services were used in the construction of this synthetic control.
+
+### Outcome 2 
+
 ```{r}
 #| label: synthdid - outcome 2
 #| fig-height: 8
@@ -1943,6 +1991,21 @@ did$did_plot
 
 Devon's orange line falls more sharply than the dotted counterfactual, indicating a positive impact of the interventions. The estimated difference is 0.4% below the expected value. The 95% confidence interval spans -8% to + 7%, meaning the true effect could be negative or positive. Consequently, the result is not statistically significant.
 
+#### Contribution plot
+
+```{r}
+#| label: synthdid - outcome 2 - contribution plot
+#| fig-height: 5
+#| warning: false
+synthdid::synthdid_units_plot(
+  estimates = did$did_estimate,
+  se.method = "placebo"
+) +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(size = 5))
+```
+
+A total of `r length(summary(did$did_estimate)$controls)` Talking Therapy services were used in the construction of this synthetic control.
+
 ### Summary
 
 ```{r}
@@ -1950,8 +2013,6 @@ Devon's orange line falls more sharply than the dotted counterfactual, indicatin
 did_overall |>
   display_did_summary_in_gt(sensitivity_summary = FALSE)
 ```
-
-
 
 ```{r}
 #| label: interpretation help 2
@@ -1994,6 +2055,7 @@ We adopted this approach because synthetic-control methods require a reasonably 
 In this section we examine how restricting the donor pool influences the DiD estimates and assess whether our original conclusions remain robust or become sensitive to these restrictions.
 
 #### Using matches from PSM
+
 What impact does using the matches returned from the [propensity score matching (PSM)](#propensity-score-matching) section have?
 
 ```{r}
@@ -2092,6 +2154,7 @@ did$did_plot
 This analysis shows Devon performed **0.4% above** the synthetic control expectation. However, the synthetic control's high variability limits confidence in this modest effect.
 
 #### Using matches from CEM
+
 What impact does using the matches returned from the [coarsened exact matching (CEM)](#coarsened-exact-matching-nov-2022) section have?
 
 ```{r}
@@ -2210,7 +2273,7 @@ Overall, the evidence points to a modest, possibly positive effect for Devon, bu
 
 # Conclusions
 
-We estimated the impact of Devon's interventions using two complimentary DiD approaches:  
+We estimated the impact of Devon's interventions using two complimentary DiD approaches:
 
 -   **Manual DiD** - Devon was compared with two services selected through a coarsened exact matching (CEM) procedure
 
@@ -2222,21 +2285,21 @@ For each approach we performed a series of sensitivity checks, for example, remo
 
 Because the evidence is not stable, any claim that the intervention produced a meaningful improvement, or deterioration, should be treated with caution.
 
-**Possible signal** 
+**Possible signal**
 
-Both the manual DiD (point estimate ~ 4.9%) and the synthetic control DiD (point estimate 0.6%) point in the same direction, suggesting a modest positive effect. However, the confidence intervals are wide and overlap zero, so this 'hint' cannot be recorded as conclusive.
+Both the manual DiD (point estimate \~ 4.9%) and the synthetic control DiD (point estimate 0.6%) point in the same direction, suggesting a modest positive effect. However, the confidence intervals are wide and overlap zero, so this 'hint' cannot be recorded as conclusive.
 
 **Recommendations for future evaluation**
 
-To obtain a definitive assessment of Devon's digital-resource and communication interventions, a more rigorous experimental design is needed: 
+To obtain a definitive assessment of Devon's digital-resource and communication interventions, a more rigorous experimental design is needed:
 
-1. Identify a cohort of comparable services using the matching variables described in this report  
+1.  Identify a cohort of comparable services using the matching variables described in this report
 
-2. Randomly assign half of the services to receive the full intervention package (FAQ pages, explanatory animations, assessment video, communication review, DNA rate tracking) and the other half to serve as controls  
+2.  Randomly assign half of the services to receive the full intervention package (FAQ pages, explanatory animations, assessment video, communication review, DNA rate tracking) and the other half to serve as controls
 
-3. Track outcomes prospectively over and adequate post-intervention horizon  
+3.  Track outcomes prospectively over and adequate post-intervention horizon
 
-4. Analyust the data with a pre-registered DiD or mixed-effects model, complemented by placebo tests and robustness checks  
+4.  Analyust the data with a pre-registered DiD or mixed-effects model, complemented by placebo tests and robustness checks
 
 Such a randomised controlled design would eliminate the donor-pool and specification sensitivities that currently limit inference, allowing a clear determination of whether Devon's interventions truly improve client preparation and engagement.
 
