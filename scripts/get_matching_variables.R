@@ -36,6 +36,29 @@ saveRDS(
   file = here::here("data", ".secret", "df_matching_contacts.Rds")
 )
 
+# other outcomes --------------------------------------------------------------
+# load the other outcome measures
+df_outcome_supp_discharge_reasons <-
+  get_su_lakemart_parquet_file(
+    str_file_pattern = "outcomes_supp_discharge_reasons.parquet/part"
+  )
+
+df_outcome_supp_reliable_recovery <-
+  get_su_lakemart_parquet_file(
+    str_file_pattern = "outcomes_supp_reliable_recovery.parquet/part"
+  )
+
+# save these files as RDS
+saveRDS(
+  object = df_outcome_supp_discharge_reasons,
+  file = here::here("data", ".secret", "df_outcome_supp_discharge_reasons.Rds")
+)
+
+saveRDS(
+  object = df_outcome_supp_reliable_recovery,
+  file = here::here("data", ".secret", "df_outcome_supp_reliable_recovery.Rds")
+)
+
 # other processing ------------------------------------------------------------
 # get a lookkup list of ODS codes to providers
 df_ods_codes <-
