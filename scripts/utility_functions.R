@@ -1103,8 +1103,8 @@ get_matching_variables <- function() {
       # outcomes
       o1_rate = o1_num_discharges_5_or_more_completed_treatment /
         o1_denom_discharges_count,
-      o2_rate = o2_num_discharges_2_to_4_completed_treatment /
-        o2_denom_discharges_2_or_more_completed_treatment,
+      o2_rate = o2_num_discharges_reliable_recovery /
+        o1_denom_discharges_count,
     ) |>
     # put in organisation and date order
     dplyr::arrange(ods_code, calc_month)
