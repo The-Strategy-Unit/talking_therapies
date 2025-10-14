@@ -93,6 +93,8 @@ data/reference/NHSTalkingTherapies+Monthly+Metadata+20250522.xlsx
 *_copy.xlsx
 *.pdf
 */.secret
+tt_interventions_summary.xlsx
+*.Rds
 
 # Outputs to ignore
 *.docx
@@ -102,3 +104,4 @@ data/reference/NHSTalkingTherapies+Monthly+Metadata+20250522.xlsx
 # Temporary files that don't require version controlling
 scripts/scratchpad.R
 *figure-html*
+*/libs/*
