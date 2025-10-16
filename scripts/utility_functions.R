@@ -1602,3 +1602,315 @@ display_did_summary_in_gt <- function(df, sensitivity_summary = FALSE) {
   # return the table
   return(gt)
 }
+
+#' Delegate for supplementary outcome analysis
+#'
+#' @description
+#' Analyses supplementary outcomes (either discharge via mutual agreement or
+#' discharge showing reliable improvement) and returns data, plots and tables
+#' for use in the report.
+#'
+#' @param supp String either "mutual_discharge" or "reliable_recovery"
+#' @param ods_intervention String ODS code for the intervention service, e.g. "RWV"
+#' @param str_intervention String the name to use for the intervention service, e.g. "Devon"
+#' @param ods_controls String vector of ODS codes for the controls services
+#' @param zoo_intervention zoo::yearmon() for the month the interventions began
+#' @param zoo_period zoo::yearmon() vector of 2, the earliest month and the latest month to filter the data for
+#' @param str_plot_subtitle String description for the subtitle for use in the plot
+#'
+#' @returns
+#' Named list containing:
+#' `df` = The data as loaded from disc (with calc_month as zoo::yearmon)
+#' `df_analysis` = The data with some calculated variables
+#' `df_chi2` = The data with filtering and summarisation for chi-squared analysis
+#' `bar_plot` = {ggplot2} object showing a bar plot of the outcome in a 2x2 summary
+#' `df_chi2_results` = Tibble of data summarising the chi-square results
+#' `gt_chi2_results` = {gt} formatted html table of chi-square results for use in the report
+#'
+#' @export
+#' @examples
+delegate_supp_outcome_analysis <- function(
+  supp = c("mutual_discharge", "reliable_recovery"),
+  ods_intervention,
+  str_intervention,
+  ods_controls,
+  zoo_intervention,
+  zoo_period,
+  # str_plot_title,
+  str_plot_subtitle
+) {
+  # ensure a valid `supp` argument given
+  match.arg(supp)
+
+  # determine settings depending on `supp`
+  switch(
+    supp,
+    "mutual_discharge" = {
+      str_file = "df_outcome_supp_discharge_reasons.Rds"
+      str_var = "osupp_1"
+      str_outcome = "calc_discharge_mutual_agreeement_flag"
+      outcome_true = "Discharged via mutual agreement"
+      outcome_false = "Other discharge reason"
+      str_plot_title = "Discharged via 'mutually agreed completion of treatment'"
+    },
+
+    "reliable_recovery" = {
+      str_file = "df_outcome_supp_reliable_recovery.Rds"
+      str_var = "osupp_2"
+      str_outcome = "calc_reliable_recovery_flag"
+      outcome_true = "Reliable recovery"
+      outcome_false = "Other"
+      str_plot_title = "Discharged with reliable recovery"
+    }
+  )
+
+  # convert to symbols
+  obj_var <- as.symbol(str_var)
+  obj_outcome <- as.symbol(str_outcome)
+
+  # load the file
+  df <-
+    readRDS(
+      file = here::here(
+        "data",
+        ".secret",
+        str_file
+      )
+    ) |>
+    janitor::clean_names() |>
+    dplyr::mutate(calc_month = zoo::as.yearmon(calc_referral_discharged_ym))
+
+  # process the key data features
+  df_analysis <-
+    df |>
+    dplyr::filter(
+      # filter for services
+      ods_code %in% c(ods_intervention, ods_controls),
+      # filter for time period
+      dplyr::between(
+        x = calc_month,
+        left = zoo_period[1],
+        right = zoo_period[2]
+      )
+    ) |>
+    # convert key variables to factors
+    dplyr::mutate(
+      # service as factor
+      service_f = dplyr::if_else(
+        condition = ods_code %in% ods_intervention,
+        true = str_intervention,
+        false = "Control"
+      ) |>
+        forcats::fct(levels = c("Control", str_intervention)),
+
+      # convert group to a factor
+      treatment_group_f = calc_treatment_count_group |>
+        forcats::fct(
+          levels = c("2-4 treatment contacts", "5+ treatment contacts")
+        ),
+
+      # convert period
+      period_f = dplyr::if_else(
+        condition = calc_month < zoo_intervention,
+        true = "Pre-intervention",
+        false = "Post-intervention"
+      ) |>
+        forcats::fct(levels = c("Pre-intervention", "Post-intervention")),
+
+      # convert outcome
+      outcome_f = dplyr::if_else(
+        condition = {{ obj_outcome }},
+        true = outcome_true,
+        false = outcome_false
+      )
+    ) |>
+    # select features of interest
+    dplyr::select(
+      service_f,
+      period_f,
+      treatment_group_f,
+      outcome_f,
+      {{ obj_var }}
+    )
+
+  # prepare the df ready for chi-square analysis
+  df_chi2 <-
+    df_analysis |>
+    # calculate the denominator
+    dplyr::mutate(
+      denom = sum({{ obj_var }}, na.rm = TRUE),
+      # denom = sum(outcome_f, na.rm = TRUE),
+      .by = c(service_f, period_f, treatment_group_f)
+    ) |>
+    # calculate the numerator
+    dplyr::summarise(
+      num = sum({{ obj_var }}, na.rm = TRUE),
+      .by = c(service_f, period_f, treatment_group_f, outcome_f, denom)
+    ) |>
+    # calculate the rate
+    dplyr::mutate(
+      rate = num / denom,
+      label = glue::glue(
+        "{scales::percent(rate, accuracy = 0.1)}\n",
+        "({scales::comma(num)} / {scales::comma(denom)})"
+      )
+    ) |>
+    # arrange for display
+    dplyr::arrange(service_f, period_f, treatment_group_f)
+
+  # visualise these results (just for the intervention site)
+  p <-
+    df_chi2 |>
+    dplyr::filter(
+      service_f == str_intervention,
+      outcome_f == outcome_true
+    ) |>
+    ggplot2::ggplot(
+      mapping = ggplot2::aes(
+        y = treatment_group_f,
+        x = rate,
+        fill = treatment_group_f
+      )
+    ) +
+    # repeat for each period in two columns
+    ggplot2::facet_wrap(facets = ~period_f, ncol = 2) +
+    # display as bar chart with labelled values
+    ggplot2::geom_bar(stat = "identity") +
+    ggplot2::geom_text(
+      mapping = ggplot2::aes(label = label),
+      size = 5,
+      hjust = "left",
+      nudge_x = 0.05
+    ) +
+    # ensure x-axis goes to 100% and a bit more space for the text
+    ggplot2::scale_x_continuous(
+      limits = c(0, 1.2),
+      labels = scales::label_percent()
+    ) +
+    # themes
+    ggplot2::theme_minimal(base_size = 20) +
+    ggplot2::theme(
+      legend.position = "none",
+      panel.grid = ggplot2::element_blank(),
+      axis.text.x = ggplot2::element_blank(),
+      axis.title = ggplot2::element_blank()
+    ) +
+    ggplot2::scale_fill_manual(
+      values = c(
+        "5+ treatment contacts" = "#f9bf07",
+        "2-4 treatment contacts" = "#686f73"
+      )
+    ) +
+    # labels
+    ggplot2::labs(
+      title = str_plot_title,
+      subtitle = stringr::str_wrap(str_plot_subtitle, width = 60)
+    )
+
+  # get separate df for each treatment group
+  df_temp <-
+    df_chi2 |>
+    # only focus on the intervention service
+    dplyr::filter(service_f == str_intervention) |>
+    # nest the data for each treatment_group_f
+    tidyr::nest(.by = treatment_group_f)
+
+  # browser()
+
+  # perform test and summarise the results
+  df_chi2_results <-
+    # df_temp |>
+    # iterate over each nested data and work out the chi-squared test results
+    purrr::map2_dfr(
+      .x = df_temp$data,
+      .y = df_temp$treatment_group_f,
+      .f = \(.x, .y) {
+        # summarise each nested df
+        .x |>
+          dplyr::summarise(
+            n = sum(num, na.rm = TRUE),
+            .by = c(period_f, outcome_f)
+          ) |>
+          # make into panel data
+          tidyr::pivot_wider(
+            names_from = outcome_f,
+            values_from = n
+          ) |>
+          # set the first column to rownames
+          tibble::column_to_rownames(var = "period_f") |>
+          # set to matrix and run the test
+          as.matrix() |>
+          chisq.test() |>
+          # tidy for outputting
+          broom::tidy() |>
+          dplyr::mutate(group = .y)
+      }
+    )
+
+  # prepare the summary tibble as formatted gt table
+  gt_chi2_results <-
+    df_chi2_results |>
+    dplyr::group_by(method) |>
+    dplyr::select(method, group, statistic, p.value, parameter) |>
+    gt::gt(row_group_as_column = TRUE) |>
+    gt::tab_options(quarto.disable_processing = TRUE) |>
+    # bold any statistically significant results
+    gt::tab_style(
+      style = gt::cell_text(weight = "bold"),
+      locations = gt::cells_body(
+        # columns = gt::vars(group, statistic, p.value, parameter),
+        columns = gt::any_of(c("group", "statistic", "p.value", "parameter")),
+        rows = p.value <= 0.05
+      )
+    ) |>
+    # label columns
+    gt::cols_label(
+      group = "Treatment contact group",
+      statistic = "Statistic",
+      p.value = gt::md("*p*-value"),
+      parameter = "Parameter"
+    ) |>
+    # format columns
+    gt::fmt_number(
+      columns = c(statistic),
+      decimals = 1
+    ) |>
+    gt::fmt(
+      columns = c(p.value),
+      fns = function(x) scales::pvalue(x)
+    ) |>
+    # explanatory text
+    gt::tab_footnote(
+      locations = gt::cells_column_labels("statistic"),
+      footnote = gt::md(
+        "The value of the chi-squared test *statistic*, which quantifies how far the observed cell counts deviate from the counts expected under the null hypothesis, calculated as the sum over all cells."
+      )
+    ) |>
+    gt::tab_footnote(
+      locations = gt::cells_column_labels("p.value"),
+      footnote = gt::md(
+        "The *p-value* for the test, which represents the probability of observing a chi-square statistic at least as large as the one computed, assuming the null hypothesis of independence (or no effect) is true."
+      )
+    ) |>
+    gt::tab_footnote(
+      locations = gt::cells_column_labels("parameter"),
+      footnote = gt::md(
+        "The degrees of freedom of the approximate chi-squared distribution of the test statistic."
+      )
+    ) |>
+    gt::tab_source_note(gt::md(
+      "Statistically significant results are shown in **bold** (*p*-values <= 0.05)"
+    ))
+
+  # return the results
+  return(
+    list(
+      "df" = df, # the file as loaded from disc
+      "df_analysis" = df_analysis, # the df with processing
+      "df_chi2" = df_chi2, # the file prepared for chi-squared analysis
+      "bar_plot" = p, # the plot showing the proportions
+      "df_chi2_results" = df_chi2_results, # the compiled chi-squared results as a tibble
+      "gt_chi2_results" = gt_chi2_results # the compiled chi-squared results as a gt table
+    )
+  )
+}
