@@ -1,7 +1,8 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-![](images/clipboard-2445800079.png)
+<img src="images/clipboard-2445800079.png" data-fig-align="center"
+width="500" />
 
 # NHS Talking Therapies
 
