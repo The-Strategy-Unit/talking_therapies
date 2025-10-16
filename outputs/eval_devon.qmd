@@ -176,9 +176,9 @@ These measures follow the numerator and denominator definitions, below.
 +--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Numerator          | Those in the denominator who attended five or more treatment care contacts during their referral[^1]                                                                                                                                                                  |
 +--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Denominator        | Referrals ending each month where the patient was 'seen and taken on for a course of treatment'[^2]                                                                                                                                                                   |
+| Denominator        | Referrals ending each month where the patient received at least two treatment contacts [^2]                                                                                                                                                                           |
 +--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Rationale          | This denominator represents monthly discharges for referrals that began a course of therapy (feasibility testing showed this group is 43% of all IAPT referrals).                                                                                                     |
+| Rationale          | This denominator represents monthly discharges for referrals that began a course of therapy.                                                                                                                                                                          |
 |                    |                                                                                                                                                                                                                                                                       |
 |                    | The numerator is the subset who attended at least five treatment contacts. Recent research identifies five sessions as a minimum associated with greater likelihood of achieving reliable recovery, so this group are those more likely to achieve reliable recovery. |
 |                    |                                                                                                                                                                                                                                                                       |
@@ -191,39 +191,29 @@ These measures follow the numerator and denominator definitions, below.
 
 [^1]: This count will be obtained from the field ‘TreatmentCareContact_Count’ (object I101D29) from the table ‘IDS101Referral’
 
-[^2]: Defined as an ‘EndCode’ (object I101250 on the table ‘IDS101Referral’) as either:
+[^2]: This count will be obtained from the field ‘TreatmentCareContact_Count’ (object I101D29) from the table ‘IDS101Referral’
 
-    -   46 (mutually agreed completion of treatment),
-
-    -   47 (termination of treatment earlier than Care Professional planned),
-
-    -   48 (termination of treatment earlier than the patient requested),
-
-    -   49 (deceased, seen and taken on for a course of treatment) or
-
-    -   96 (not known, seen and taken on for a course of treatment)
-
-    See <https://digital.nhs.uk/binaries/content/assets/website-assets/isce/dcb1520/1520132021tos.xlsx> \[Accessed 5th September 2025\]
-
-+--------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Item               | Description                                                                                                                                                                  |
-+====================+==============================================================================================================================================================================+
-| Measure            | The proportion of referrals that have completed a course of therapy but attended fewer than five treatment sessions                                                          |
-+--------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Numerator          | Of the denominator, those who attended between 2 and 4 treatment care contacts (inclusive) in total, during their referral                                                   |
-+--------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Denominator        | Referrals ending each month where the patient was 'seen and taken on for a course of treatment' and attended at least two treatment sessions.                                |
-+--------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Rationale          | This denominator captures monthly discharges who began and completed a course of therapy (IAPT KPI definition: at least two treatment contacts).                             |
-|                    |                                                                                                                                                                              |
-|                    | Research indicates five sessions is the minimum associated with a greater likelihood of reliable recovery, so this group is most likely to benefit from additional sessions. |
-|                    |                                                                                                                                                                              |
-|                    | This measure therefore identifies discharged referrals who completed treatment but would likely improve their chance of reliable recovery by attending more sessions.        |
-+--------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Expected variation | We expect this measure to **decrease** as a result of interventions that improve adherence with therapy.                                                                     |
-+--------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++--------------------+--------------------------------------------------------------------------------------------------------------------------+
+| Item               | Description                                                                                                              |
++====================+==========================================================================================================================+
+| Measure            | The proportion of referrals that achieved reliable recovery                                                              |
++--------------------+--------------------------------------------------------------------------------------------------------------------------+
+| Numerator          | Of the denominator, those who achieved 'Reliable recovery'[^3]                                                           |
++--------------------+--------------------------------------------------------------------------------------------------------------------------+
+| Denominator        | Referrals ending each month where the patient received at least two treatment contacts [^4]                              |
++--------------------+--------------------------------------------------------------------------------------------------------------------------+
+| Rationale          | This measure identifies referrals that attained the target outcome of reliable recovery.                                 |
+|                    |                                                                                                                          |
+|                    | It serves to evaluate whether changes in this outcome align with the shifts observed in the process measure (Outcome 1). |
++--------------------+--------------------------------------------------------------------------------------------------------------------------+
+| Expected variation | We expect this measure to **increase** as a result of interventions that improve adherence with therapy.                 |
++--------------------+--------------------------------------------------------------------------------------------------------------------------+
 
 : Outcome measure 2
+
+[^3]: Defined as both `` ReliableImprovement_Flag = `True` `` **and** `` Recovery_Flag = `True` ``
+
+[^4]: This count will be obtained from the field ‘TreatmentCareContact_Count’ (object I101D29) from the table ‘IDS101Referral’
 
 ## Matching variables
 
@@ -3157,7 +3147,132 @@ To assess the robustness to the choice of donor pool we re-ran the synthetic dif
 
 Overall, the evidence points to a modest, possibly positive effect for Devon, but the result remains sensitive to donor-pool construction and the inherent noise in the synthetic control.
 
-## Descriptive analysis
+## Supplementary analysis
+
+```{r}
+#| label: supp - gather data
+#| cache: false
+supp1 <-
+  delegate_supp_outcome_analysis(
+    supp = "mutual_discharge",
+    ods_intervention = "RWV",
+    str_intervention = "Devon",
+    ods_controls = c("RAT"),
+    zoo_intervention = zoo::as.yearmon("Dec 2022"),
+    zoo_period = zoo::as.yearmon(c("Jan 2022", "May 2025")),
+    str_plot_subtitle = "Significant reductions observed in the post-intervention period for both intensity groups"
+  )
+
+supp2 <-
+  delegate_supp_outcome_analysis(
+    supp = "reliable_recovery",
+    ods_intervention = "RWV",
+    str_intervention = "Devon",
+    ods_controls = c("RAT"),
+    zoo_intervention = zoo::as.yearmon("Dec 2022"),
+    zoo_period = zoo::as.yearmon(c("Jan 2022", "May 2025")),
+    str_plot_subtitle = "Strongest increase seen in the '2-4 treatment contacts' intensity group"
+  )
+```
+
+To contextualise the results for out two primary outcomes, we conducted two supplementary analyses:
+
+1.  **Mutual discharge agreement** - the proportion of discharges jointly agreed up by patient and therapist
+
+2.  **Reliable recovery** - the proportion of discharges that met criteria for reliable recovery
+
+For each measure we compared:
+
+-   **Pre- vs post-intervention** periods (before and after Devon's interventions)
+
+-   **Treatment intensity** groups: participants who received **\>= 5 contacts** versus those with **\< 5 contacts**
+
+### Discharge by mutual agreement
+
+On discharge from a Talking Therapy service, every client record must include a coded reason in the `EndCode` field. According to the [IAPT Techical Output Specification](https://digital.nhs.uk/data-and-information/information-standards/governance/latest-activity/standards-and-collections/dapb-1520-improving-access-to-psychological-therapies-data-set), there are 14 predefined categories for coding discharge reasons:
+
+```{r}
+#| label: supp - discharge codes
+#| cache: true
+
+readxl::read_xlsx(
+  path = here::here("data", "reference", "iapt_tos_endcode.xlsx")
+) |>
+  dplyr::group_by(group) |>
+  gt::gt(row_group_as_column = TRUE) |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  # label the columns
+  gt::cols_label(
+    code = "Code",
+    description = "Definition"
+  ) |>
+  # highlight the code we are interested in
+  # bold any statistically significant results
+  gt::tab_style(
+    # style = gt::cell_text(weight = "bold"),
+    style = gt::cell_fill(color = "#fcdf83"),
+    locations = gt::cells_body(
+      # columns = gt::vars(group, statistic, p.value, parameter),
+      columns = gt::any_of(c("code", "description")),
+      rows = code == 46
+    )
+  ) |>
+  # headings and footnotes
+  gt::tab_header(
+    title = "Discharge from Improving Access to Psychological Therapies Service Reason"
+  ) |>
+  gt::tab_source_note(
+    "Details of `EndCode` codes from version 2.1 of the IAPT Technical Output Specification"
+  )
+```
+
+This section examines the share of referrals coded as *Mutually agreed completion of treatment* (code 46) after a course of therapy.
+
+This code indicates that both patient and therapist agree the treatment has been completed. As with the primary analyses, we restrict the sample to referrals with *at least two treatment contacts*, ensuring we are examining individuals who actually entered a course of care.
+
+The bar chart below displays Devon's data only. It reveals a **significant decline** in the proportion of mutually-agreed discharges during the post-intervention period (Dec 2022 to May 2025) compared with the pre-intervention period (Jan 2022 to Nov 2022). This downward shift is observed in both subgroups - those who received 5 or more contacts and those with fewer than 5 contacts.
+
+```{r}
+#| label: supp - mutual - plot
+#| cache: false
+#| fig-height: 4
+#| fig-width: 12
+
+# display a bar chart
+supp1$bar_plot
+
+# display the chi-square test results
+supp1$gt_chi2_results
+```
+
+The chi-squared test confirms that the observed changes are **statistically significant** for both treatment-intensity groups.
+
+These results suggest that a larger share of referrals are concluding without mutual agreement. One possible explanation is that therapists are ending the referral before patients feel prepared to finish treatment.
+
+### Achieving reliable recovery
+
+This section assesses the proportion of referrals that attained *reliable recovery* after completing therapy.
+
+Reliable recovery requires two conditions: 1) the patient's symptoms fall below the clinical threshold ('recovery'), and 2) the magnitude of symptom reduction exceeds the reliable index, indicating a change that is statistically meaningful.
+
+As with the previous analysis, the bar chart shows only Devon's data. In demonstrates **increases** in the proportion of discharged referrals achieving reliable recovery for both treatment-intensity groups, with the most **pronounced rise** observed among patients who received 2-4 treatment contacts.
+
+```{r}
+#| label: supp - recovery - plot
+#| cache: true
+#| fig-height: 4
+#| fig-width: 12
+
+# display a bar chart
+supp2$bar_plot
+
+# display the chi-square test results
+supp2$gt_chi2_results
+```
+
+The chi-squared test confirms that the observed changes are **statistically significant** for the **2-4 treatment contacts** group.
+
+This suggests that the rise in reliable recovery observed in the matched difference-in-differences analyses is driven primarily by patients who received only 2-4 treatment contacts.
 
 # Conclusions
 
