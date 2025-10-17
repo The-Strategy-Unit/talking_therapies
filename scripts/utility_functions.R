@@ -654,7 +654,7 @@ plot_outcomes_over_time <- function(
           y = y_val,
           label = intervention_title
         ),
-        hjust = 0,
+        hjust = 1,
         size = 6,
         colour = "#5881c1"
       )
@@ -952,6 +952,14 @@ compare_matches_preintervention <- function(
       )
     )
 
+  # define the colours
+  default_col <- "#686f73"
+  cols <- setNames(
+    rep(default_col, length(selected_ods)),
+    selected_ods
+  )
+  cols[params$ods_intervention] <- "#f9bf07"
+
   # start the plot
   p <-
     df |>
@@ -990,7 +998,8 @@ compare_matches_preintervention <- function(
       limits = c(0, NA),
       labels = scales::label_percent(accuracy = 1)
     ) +
-    ggplot2::scale_colour_manual(values = c("RWV" = "#f9bf07")) +
+    # ggplot2::scale_colour_manual(values = c(selected_ods = "#f9bf07")) +
+    ggplot2::scale_colour_manual(values = cols) +
     ggplot2::theme_minimal(base_size = 20) +
     ggplot2::labs(title = selected_ods[2]) +
     ggplot2::theme(
@@ -1122,7 +1131,7 @@ get_matching_variables <- function() {
 get_variable_labels <- function() {
   ls_labels <- list(
     o1_rate = "O1 Proportion of discharges with 5+ treatment contacts",
-    o2_rate = "O2 Proportion of discharges that 'complete a course of treatment' and have between 2 and 4 treatment contacts",
+    o2_rate = "O2 Proportion of discharges that achieve 'reliable recovery'",
     o1_denom_discharges_count = "M1 Number of discharges for referrals that were seen and taken on for treatment",
     o1_denom = "M1 Number of discharges for referrals that were seen and taken on for treatment",
     m2_rate = "M2 Proportion of discharges for people aged under 26 years at referral",
@@ -1329,7 +1338,7 @@ get_manual_did_estimation <- function(
     dplyr::select(ods_code, calc_month, {{ var_o1 }}, {{ var_o2 }}) |>
     # create treatment and post indicators
     dplyr::mutate(
-      treated = dplyr::if_else(ods_code == "RWV", 1L, 0L),
+      treated = dplyr::if_else(ods_code == ods_intervention, 1L, 0L),
       post = dplyr::if_else(calc_month >= zoo_intervention, 1L, 0L)
     )
 
@@ -1417,6 +1426,7 @@ delegate_synthdid_analysis <- function(
   df_synth,
   .yearmon_intervention,
   .yearmon_period,
+  .yearmon_scale_to = NA,
   .ods_treated,
   str_treated = "",
   summary_spec = "",
@@ -1425,6 +1435,9 @@ delegate_synthdid_analysis <- function(
   labs_title = "",
   labs_subtitle = ""
 ) {
+  # decide what to set as the upper limit for the x-axis
+  .yearmon_scale_to = dplyr::coalesce(.yearmon_scale_to, .yearmon_period[2])
+
   # set the seed
   set.seed(12345)
 
@@ -1469,6 +1482,33 @@ delegate_synthdid_analysis <- function(
       conf.high = estimate + (1.96 * se)
     )
 
+  # prepare the subtitle if none was given
+  if (labs_subtitle == "") {
+    # what is the estimate
+    temp_estimate <- did_estimate |>
+      as.numeric() |>
+      scales::percent(accuracy = 0.1)
+
+    # what is the direction
+    temp_direction <- dplyr::if_else(
+      condition = as.numeric(did_estimate) > 0L,
+      true = "above",
+      false = "below"
+    )
+
+    # comment on statistical significance
+    temp_sig <- dplyr::if_else(
+      condition = (did_summary$conf.low < 0 & did_summary$conf.high < 0) |
+        (did_summary$conf.low > 0 & did_summary$conf.high > 0),
+      true = "", # no need to comment
+      false = ", but the difference is not statistically significant"
+    )
+
+    labs_subtitle <- glue::glue(
+      "{params$intervention_short_name} performed {temp_estimate} {temp_direction} expected{temp_sig}"
+    )
+  }
+
   # plot the DiD
   did_plot <-
     did_estimate |>
@@ -1485,7 +1525,7 @@ delegate_synthdid_analysis <- function(
     ggplot2::scale_y_continuous(
       labels = scales::label_percent(accuracy = 0.5)
     ) +
-    zoo::scale_x_yearmon() +
+    zoo::scale_x_yearmon(limits = c(NA, .yearmon_scale_to)) +
     # add a label describing the did esimate and CI
     ggplot2::geom_label(
       data = data.frame(
@@ -1512,7 +1552,7 @@ delegate_synthdid_analysis <- function(
     ) +
     ggplot2::labs(
       title = labs_title,
-      subtitle = stringr::str_wrap(labs_subtitle, 50)
+      subtitle = stringr::str_wrap(labs_subtitle, 65)
     )
 
   # return a list of all objects
