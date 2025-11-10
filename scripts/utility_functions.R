@@ -1869,6 +1869,14 @@ get_prepared_supplementary_df <- function(
       df_analysis <-
         df_analysis |>
         dplyr::mutate(
+          # rename some of the codes
+          calc_discharge_reason_group = dplyr::case_match(
+            calc_discharge_reason_group,
+            "Early termination by Care Professional" ~ "Discharged earlier than Care Professional wanted",
+            "Early termination by Patient" ~ "Discharged earlier than Patient wanted",
+            .default = calc_discharge_reason_group
+          ),
+          # cast as a factor
           outcome_f = calc_discharge_reason_group |>
             forcats::fct() |>
             forcats::fct_infreq()
