@@ -35,8 +35,14 @@ bibliography: references.bib
 # set up params (NB, the ones in YAML don't work well when running interactively)
 params <- list(
   "ods_intervention" = "RWV",
-  "download_from_teams" = FALSE
+  "intervention_long_name" = "Talkworks, Devon",
+  "intervention_short_name" = "Devon",
+  "download_from_teams" = FALSE,
+  "zoo_intervention_month" = zoo::as.yearmon("Dec 2022")
 )
+
+# set up the did_meta object
+did_meta <- list()
 
 # load in utility functions
 source(here::here('scripts', 'utility_functions.R'))
@@ -2280,7 +2286,6 @@ did_meta <-
     )
   )
 
-
 # show as a table
 did |>
   dplyr::select(
@@ -2348,7 +2353,7 @@ df_analysis <-
   # create treatment and post indicators
   dplyr::mutate(
     treated = dplyr::if_else(ods_code == params$ods_intervention, 1L, 0L),
-    post = dplyr::if_else(calc_month >= zoo::as.yearmon("Dec 2022"), 1L, 0L),
+    post = dplyr::if_else(calc_month >= params$zoo_intervention_month, 1L, 0L),
     line_colour = dplyr::if_else(
       ods_code == params$ods_intervention,
       "#f9bf07",
@@ -2361,7 +2366,7 @@ did <-
   get_manual_did_estimation(
     df = df_analysis,
     ods_intervention = params$ods_intervention,
-    zoo_intervention = zoo::as.yearmon("Dec 2022")
+    zoo_intervention = params$zoo_intervention_month
   )
 
 # add to a combined summary (for sensitivity analysis)
@@ -3152,6 +3157,7 @@ Overall, the evidence points to a modest, possibly positive effect for Devon, bu
 ```{r}
 #| label: supp - gather data
 #| cache: false
+#| warning: false
 supp1 <-
   delegate_supp_outcome_analysis(
     supp = "mutual_discharge",
@@ -3177,13 +3183,13 @@ supp2 <-
 
 To contextualise the results for out two primary outcomes, we conducted two supplementary analyses:
 
-1.  **Mutual discharge agreement** - the proportion of discharges jointly agreed up by patient and therapist
+1.  **Discharge reason** - examining the distribution of discharge reasons, with particular attention to cases where discharge was jointly agreed upon by both patient and therapist
 
-2.  **Reliable recovery** - the proportion of discharges that met criteria for reliable recovery
+2.  **Reliable recovery** - assessing the proportion of discharges that met criteria for reliable recovery
 
 For each measure we compared:
 
--   **Pre- vs post-intervention** periods (before and after Devon's interventions)
+-   **Pre- vs post-intervention** periods (before and after `r params$intervention_long_name`'s interventions)
 
 -   **Treatment intensity** groups: participants who received **\>= 5 contacts** versus those with **\< 5 contacts**
 
@@ -3226,16 +3232,22 @@ readxl::read_xlsx(
   )
 ```
 
-This section examines the share of referrals coded as *Mutually agreed completion of treatment* (code 46) after a course of therapy.
+This section analyses the proportion of referrals coded as **Mutually Agreed Completion of Treatment** (code 46), indicating that both the patient and therapist concurred that the course of therapy had been successfully completed. Consistent with the primary analyses, we limit the sample to referrals with at least two treatment contacts to ensure inclusion of people who entered a course of care.
 
-This code indicates that both patient and therapist agree the treatment has been completed. As with the primary analyses, we restrict the sample to referrals with *at least two treatment contacts*, ensuring we are examining individuals who actually entered a course of care.
+Where data permits, we also examine referrals coded as **ended before the therapist planned** (code 47) and referrals that **ended earlier than the patient wanted** (code 48). Due to the requirements of the chi-squared analysis - which requires a minimum of five events per cell - these categories may be combined with 'Other codes' if referrals volumes are insufficient.
 
-The bar chart below displays Devon's data only. It reveals a **significant decline** in the proportion of mutually-agreed discharges during the post-intervention period (Dec 2022 to May 2025) compared with the pre-intervention period (Jan 2022 to Nov 2022). This downward shift is observed in both subgroups - those who received 5 or more contacts and those with fewer than 5 contacts.
+The bar chart below displays `r params$intervention_long_name`'s data only. For the 5+ treatment contacts intensity group it highlights a substantial increase of **83.2 percentage points** in discharges categorised as **Not Known (Seen and taken on for a course of treatment) (code 96)**. This rise is accompanied by notable declines in other discharge categories, most significantly:
+
+-   Mutually agreed completion of treatment, which fell by 68.8 percentage points
+
+-   Termination of treatment earlier than Care Professional planned, down 13.5 percentage points
+
+-   Termination of treatment earlier than patient requested, which decreased by 1 percentage point
 
 ```{r}
 #| label: supp - mutual - plot
 #| cache: false
-#| fig-height: 4
+#| fig-height: 9
 #| fig-width: 12
 
 # display a bar chart
@@ -3247,7 +3259,9 @@ supp1$gt_chi2_results
 
 The chi-squared test confirms that the observed changes are **statistically significant** for both treatment-intensity groups.
 
-These results suggest that a larger share of referrals are concluding without mutual agreement. One possible explanation is that therapists are ending the referral before patients feel prepared to finish treatment.
+When an early version of these findings were shared with `r params$intervention_long_name` , they noted that discharge coding practices have been reviewed in recent years to enhance record-keeping. Additionally, several discharge codes, particularly those related to onward referrals to other services - have been retired following changes in service provision.
+
+These results suggest that the majority of referrals are now discharged under broadly defined or non-specific codes.
 
 ### Achieving reliable recovery
 
