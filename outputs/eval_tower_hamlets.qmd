@@ -1389,7 +1389,7 @@ p <-
     bool_intervention = TRUE
   )
 p
-p |> plotly::ggplotly()
+# p |> plotly::ggplotly()
 ```
 
 **What this chart shows:**
@@ -1429,7 +1429,7 @@ p <-
     bool_intervention = TRUE
   )
 p
-p |> plotly::ggplotly()
+# p |> plotly::ggplotly()
 ```
 
 **Key observations**
@@ -1455,9 +1455,12 @@ Two control services exhibited abnormal dips in performance:
 df_analysis2 <-
   df_analysis |>
   dplyr::filter(
-    !(ods_code == "RWK53" &
+    !(ods_code == params$ods_intervention &
       calc_month %in%
-        zoo::as.yearmon(c("May 2022", "Sep 2023", "May 2024", "Jun 2024")))
+        zoo::as.yearmon(c("May 2022", "Sep 2023", "May 2024", "Jun 2024"))),
+    !(ods_code == "RWK79" &
+      calc_month %in% zoo::as.yearmon(c("Sep 2023", "Mar 2024"))),
+    !(ods_code == "RXX1Y" & calc_month %in% zoo::as.yearmon(c("Mar 2024")))
   )
 
 # show as a spaghetti plot
@@ -1467,7 +1470,7 @@ plot_spaghetti_plot(
   ods_intervention = params$ods_intervention,
   str_title = "Outcome 1: discharges with 5+ treatment contacts",
   str_subtitle = "These time series now seem less likely to bias the analysis",
-  zoo_intervention = zoo::as.yearmon("Dec 2022"),
+  zoo_intervention = params$zoo_intervention_month,
   bool_intervention = TRUE
 )
 
@@ -1478,10 +1481,326 @@ plot_spaghetti_plot(
   ods_intervention = params$ods_intervention,
   str_title = "Outcome 2: discharges with reliable recovery",
   str_subtitle = "These time series now seem less likely to bias the analysis",
-  zoo_intervention = zoo::as.yearmon("Dec 2022"),
+  zoo_intervention = params$zoo_intervention_month,
   bool_intervention = TRUE
 )
 ```
+
+#### Difference-in-Differences (DiD)
+
+The results of the DiD analyses are presented below:
+
+```{r}
+#| label: psm - did table
+#| cache: true
+# conduct did analysis on the matched service
+did <-
+  get_manual_did_estimation(
+    df = df_analysis2,
+    ods_intervention = params$ods_intervention,
+    zoo_intervention = params$zoo_intervention_month
+  )
+
+# add to a combined summary (for sensitivity analysis)
+did_overall <-
+  did |>
+  dplyr::mutate(specification = "Main model (baseline)")
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  tibble::tibble(
+    specification = "PSM main model",
+    outcome = did$outcome,
+    estimate = did$estimate,
+    se = did$std.error
+  )
+
+# display
+did |>
+  dplyr::select(
+    outcome,
+    estimate,
+    conf.low,
+    conf.high,
+    p.value
+  ) |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::fmt_percent(
+    columns = c(estimate, conf.low, conf.high),
+    decimals = 2
+  ) |>
+  gt::cols_merge(
+    columns = c(conf.low, conf.high),
+    pattern = "{1} to {2}"
+  ) |>
+  gt::cols_label(
+    outcome = "Outcome",
+    estimate = "Difference-in-Differences (DiD) estimate",
+    conf.low = "95% confidence interval"
+  ) |>
+  gt::tab_style(
+    style = list(gt::cell_text(weight = "bold")),
+    locations = gt::cells_body(
+      columns = c(estimate, conf.low),
+      rows = p.value <= 0.05
+    )
+  ) |>
+  gt::cols_hide(columns = p.value) |>
+  gt::tab_source_note(gt::md(
+    "Statistically significant findings are shown in **bold**"
+  ))
+```
+
+This table summarises the Difference-in-Differences (DiD) analysis for `r params$intervention_long_name`'s interventions using the three control services identified using the Propensity Score Matching process and which exhibited parallel trends.
+
+There is no strong evidence of a true effect for either outcome at the conventional 5% significance level.
+
+The point estimates give the best single indicator of direction and magnitude:
+
+-   Outcome 1: small decrease  
+
+-   Outcome 2: small increase
+
+Since neither confidence interval excludes zero, **these findings are not statistically significant**, indicating that the observed differences could be due to chance rather than a true effect.
+
+::: callout-tip
+#### Interpretation
+
+```{r}
+#| label: interpretation help psm
+#| cache: true
+
+# work out the total discharges in 12 months preceeding
+total_discharges <-
+  df |>
+  dplyr::filter(
+    ods_code == params$ods_intervention,
+    dplyr::between(
+      calc_month,
+      zoo::as.yearmon("Jun 2024"),
+      zoo::as.yearmon("May 2025")
+    )
+  ) |>
+  dplyr::summarise(
+    total = sum(o1_denom_discharges_count, na.rm = TRUE)
+  ) |>
+  dplyr::pull(total)
+
+# work out the expected number of people to benefit from the uplift
+people_benefit_o1 <- floor(total_discharges * (-1.96 / 100))
+people_benefit_o2 <- floor(total_discharges * (1.55 / 100))
+```
+
+These findings indicate `r params$intervention_long_name`'s post-intervention performance exceeds the counterfactual for outcomes 2, but the wide confidence interval is too wide to support a definitive claim of effectiveness.
+
+Assuming the 1.55% gain is real, it translates to an additional **`r people_benefit_o2` people** achieving reliable recovery per year (based on `r params$intervention_long_name`'s annual discharge volume of `r scales::comma(total_discharges)` from June 2024 to May 2025).
+:::
+
+### Sensitivity analysis
+
+Two important decisions were made that led to the above analytical findings:
+
+1.  **Parallel trend selection** - We inspected the 8 matched control services visually and excluded five that did not follow `r params$intervention_long_name`'s pre-intervention trend.
+
+2.  **Anomalous month removal** - For the remaining matched services we omitted several months for three services with extreme values, which yielded more stable performance across outcomes.
+
+Below we reassess the findings after relaxing each of these decisions to determine whether the original conclusions hold are are sensitive to these analytical choices.
+
+#### Keeping anomalous months
+
+What impact does keeping the extreme values in the time series have?
+
+```{r}
+#| label: psm - sensitivity - anomalous months
+#| cache: true
+
+# conduct did analysis on the two matched services
+did <-
+  get_manual_did_estimation(
+    df = df_analysis,
+    ods_intervention = params$ods_intervention,
+    zoo_intervention = params$zoo_intervention_month
+  )
+
+# add to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did |>
+      dplyr::mutate(specification = "Alternative 1 - keep anomalous months")
+  )
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  dplyr::bind_rows(
+    did_meta,
+    tibble::tibble(
+      specification = "PSM alternative 1 - keep anomalous months",
+      outcome = did$outcome,
+      estimate = did$estimate,
+      se = did$std.error
+    )
+  )
+
+# show as a table
+did |>
+  dplyr::select(
+    outcome,
+    estimate,
+    conf.low,
+    conf.high,
+    p.value
+  ) |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::fmt_percent(
+    columns = c(estimate, conf.low, conf.high),
+    decimals = 2
+  ) |>
+  gt::cols_merge(
+    columns = c(conf.low, conf.high),
+    pattern = "{1} to {2}"
+  ) |>
+  gt::cols_label(
+    outcome = "Outcome",
+    estimate = "Difference-in-Differences (DiD) estimate",
+    conf.low = "95% confidence interval"
+  ) |>
+  gt::tab_style(
+    style = list(gt::cell_text(weight = "bold")),
+    locations = gt::cells_body(
+      columns = c(estimate, conf.low),
+      rows = p.value <= 0.05
+    )
+  ) |>
+  gt::cols_hide(columns = p.value) |>
+  gt::tab_source_note(gt::md(
+    "Statistically significant findings are shown in **bold**"
+  ))
+```
+
+- For outcome 1 the DiD estimate is slightly closer to zero and the confidence interval is wider.  
+
+- For outcome 2 the DiD estimate increases, but the confidence interval is also wider.
+
+Sensitivity analyses relaxing the exclusion of anomalous months yielded similar point estimates for both outcomes, though with wider confidence intervals. These results suggest that the estimated effects are directionally consistent but not statistically robust, and should be interpreted with caution.
+
+#### Using all PSM controls
+
+What impact does using all 8 matched control services have on the findings?
+
+```{r}
+#| label: psm - sensitivity - all controls
+#| cache: true
+
+df_analysis3 <-
+  df |>
+  dplyr::filter(
+    # limit to activity between Jul 2022 and May 2025
+    dplyr::between(
+      calc_month,
+      zoo::as.yearmon("Jan 2022"),
+      zoo::as.yearmon("Jul 2025")
+    ),
+    # limit to our matched services
+    ods_code %in% c(params$ods_intervention, controls$psm_all)
+  ) |>
+  # simplify the data
+  dplyr::select(ods_code, calc_month, o1_rate, o2_rate) |>
+  # create treatment and post indicators
+  dplyr::mutate(
+    treated = dplyr::if_else(ods_code == params$ods_intervention, 1L, 0L),
+    post = dplyr::if_else(calc_month >= params$zoo_intervention_month, 1L, 0L),
+    line_colour = dplyr::if_else(
+      ods_code == params$ods_intervention,
+      "#f9bf07",
+      adjustcolor("#9d928a", alpha.f = 0.5)
+    )
+  ) |>
+  # remove the anomalous months (to isolate the effect of expanding controls)
+  dplyr::filter(
+    !(ods_code == params$ods_intervention &
+      calc_month %in%
+        zoo::as.yearmon(c("May 2022", "Sep 2023", "May 2024", "Jun 2024"))),
+    !(ods_code == "RWK79" &
+      calc_month %in% zoo::as.yearmon(c("Sep 2023", "Mar 2024"))),
+    !(ods_code == "RXX1Y" & calc_month %in% zoo::as.yearmon(c("Mar 2024")))
+  )
+
+# conduct did analysis
+did <-
+  get_manual_did_estimation(
+    df = df_analysis3,
+    ods_intervention = params$ods_intervention,
+    zoo_intervention = params$zoo_intervention_month
+  )
+
+# add to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did |>
+      dplyr::mutate(specification = "Alternative 2 - use all 8 controls")
+  )
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  dplyr::bind_rows(
+    did_meta,
+    tibble::tibble(
+      specification = "CEM alternative 2 - use all 8 controls",
+      outcome = did$outcome,
+      estimate = did$estimate,
+      se = did$std.error
+    )
+  )
+
+
+# display as a table
+did |>
+  dplyr::select(
+    outcome,
+    estimate,
+    conf.low,
+    conf.high,
+    p.value
+  ) |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::fmt_percent(
+    columns = c(estimate, conf.low, conf.high),
+    decimals = 2
+  ) |>
+  gt::cols_merge(
+    columns = c(conf.low, conf.high),
+    pattern = "{1} to {2}"
+  ) |>
+  gt::cols_label(
+    outcome = "Outcome",
+    estimate = "Difference-in-Differences (DiD) estimate",
+    conf.low = "95% confidence interval"
+  ) |>
+  gt::tab_style(
+    style = list(gt::cell_text(weight = "bold")),
+    locations = gt::cells_body(
+      columns = c(estimate, conf.low),
+      rows = p.value <= 0.05
+    )
+  ) |>
+  gt::cols_hide(columns = p.value) |>
+  gt::tab_source_note(gt::md(
+    "Statistically significant findings are shown in **bold**"
+  ))
+```
+
+- For outcome 1 the DiD estimate becomes slightly more negative and the confidence interval is narrows.  
+
+- For outcome 2 the DiD estimate increases suggesting a stronger positive impact and the confidence interval is wider.
+
+Expanding the control group to include all eight matched services yielded directionally consistent results for both outcomes. The estimated effect for outcome 1 became slightly more negative, while outcome 2 showed a stronger positive effect. Neither result reached statistical significance, but the findings suggest the estimated effects are robust to control group specification.
+
+# GOT TO HERE 2025-11-11
 
 ## Coarsened exact matching - March 2024
 
