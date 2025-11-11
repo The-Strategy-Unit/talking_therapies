@@ -22,3 +22,46 @@ In 2023-24, 53% of referrals that started treatment **completed a course** of tr
 The recovery standard for NHS Talking Therapies is that 50% of patients **achieve reliable recovery**. This standard is achieved by patients attending at least *five* treatment sessions.
 
 The focus of this evaluation is to explore initiatives designed to reduce the proportion of patients who complete a course of treatment, but attend only two, three or four sessions.
+
+## Install dependencies
+
+Use the following commands to list all packages used in this project then to install those from CRAN and those from GitHub.
+
+```{r}
+#| label: install dependencies
+#| eval: false
+
+# source functions
+source(here::here("scripts", "utility_functions.R"))
+
+# scan for dependencies
+deps <- scan_for_dependencies()
+
+# list dependencies installed from GitHub
+deps_gh <- c("StrategyUnitTheme", "synthdid", "stats")
+deps_gh_install <- c(
+  "The-Strategy-Unit/StrategyUnitTheme",
+  "synth-inference/synthdid"
+)
+
+# list dependencies not on GitHub
+deps_cran <- deps[!deps %in% deps_gh]
+
+# install dependencies from CRAN
+purrr::walk(
+  .x = deps_cran,
+  .f = \(.x) {
+    print(.x)
+    pak::pak(.x)
+  }
+)
+
+# install dependencies from GitHub
+purrr::walk(
+  .x = deps_gh_install,
+  .f = \(.x) {
+    print(.x)
+    pak::pak(.x)
+  }
+)
+```
