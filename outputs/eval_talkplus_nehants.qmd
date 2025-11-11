@@ -43,6 +43,9 @@ params <- list(
   "zoo_intervention_month" = zoo::as.yearmon("Apr 2024")
 )
 
+# set up the did_meta object
+did_meta <- list()
+
 # load in utility functions
 source(here::here('scripts', 'utility_functions.R'))
 
@@ -94,7 +97,7 @@ While there are signals of benefit, especially for reliable recovery, the eviden
 
 **Analytical methods**
 
--   Manual difference-in-differences (DiD) using matched services via Coarsened Exact Matching (CEM)
+-   Manual difference-in-differences (DiD) using matched services via Propensity Score Matching (PSM) and Coarsened Exact Matching (CEM)
 
 -   Synthetic DiD using weighted synthetic controls
 
@@ -816,7 +819,58 @@ Our goal is to identify variables that show large differences, because those are
 
 Variables with less than 0.1 difference are less promising for improvement. In this case, `m3_rate` (Proportion of discharges for people aged 60 years and older at referral), `m12_rate` (Proportion of contacts conducted face-to-face) and `m14_rate` (M14 Proportion of contacts conducted in English).
 
-Recommendation: drop `m3_rate`, `m12_rate` and `m14_rate` from the matching process as there is little scope to improve balance on these variables.
+**Recommendation:** drop `m3_rate`, `m12_rate` and `m14_rate` from the matching process as there is little scope to improve balance on these variables.
+
+### Separation
+
+Perfect separation occurs when the model can perfectly predict treatment assignment based solely on covariates - meaning it assigns propensity scores of exactly 0 or 1. In this scenario, treated and untreated units become completely distinguishable, making it impossible to find suitable matches for some observations. This lack of overlap in covariate distributions can lead to biased or unstable estimates.
+
+In our case, where covariates are expressed as proportions bounded between 0 and 1, separation may arise when these covariates take on extreme values of exactly 0 or 1.
+
+Here we see a list of covariates for `r params$intervention_long_name` which have values of exactly 0 or 1:
+
+```{r}
+#| label: separation
+#| cache: true
+
+# list the variables likely to result in perfect separation
+df_prep |>
+  # get the project's record
+  dplyr::filter(ods_code == params$ods_intervention) |>
+  # pivot so that variables are now rows
+  tidyr::pivot_longer(
+    cols = c(
+      dplyr::everything(),
+      -dplyr::any_of(c("ods_code", "name", "calc_month", "flag_intervention"))
+    ),
+    names_to = "variable",
+    values_to = "value"
+  ) |>
+  # filter for values of either 1 or 0
+  dplyr::filter(
+    value %in% c(0L, 1L),
+    !variable %in% c("m3_rate", "m12_rate", "m14_rate") # already excluded from the above process
+  ) |>
+  # add in variable descriptions
+  dplyr::left_join(
+    y = tibble::tibble(
+      variable = names(ls_labels),
+      description = as.character(unname(ls_labels))
+    ),
+    by = dplyr::join_by("variable")
+  ) |>
+  # display the result
+  dplyr::select(variable, description, value) |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::cols_label(
+    variable = "Matching variable",
+    value = params$zoo_intervention_month - 1 / 12,
+    description = "Variable description"
+  )
+```
+
+**Recommendation:** drop `m11_rate` and `m16_rate` from the matching process as they are likely to result in perfect separation.
 
 ### Multicollinearity
 
@@ -837,14 +891,15 @@ matching_vars <- c(
   stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
 )
 # exclude those we don't want
-matching_vars <- setdiff(matching_vars, c("m3_rate", "m12_rate", "m14_rate"))
+matching_vars <- setdiff(
+  matching_vars,
+  c("m3_rate", "m12_rate", "m14_rate", "m11_rate", "m16_rate")
+)
 t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-In this table, `m13_rate` (the proportion of contacts conducted outside of weekdays, 9am to 5pm) has the highest VIF of 114, far exceeding the usual threshold.
-
-**Next step:** evaluate the impact of removing `m13_rate` from the matching model, as its extreme multicollinearity may distort the matching process.
+**Next step:** evaluate the impact of removing `m13_rate` from the matching model.
 
 ```{r}
 #| label: multicollinearity - step 2
@@ -858,15 +913,13 @@ matching_vars <- c(
 # exclude those we don't want
 matching_vars <- setdiff(
   matching_vars,
-  c("m3_rate", "m12_rate", "m14_rate", "m13_rate")
+  c("m3_rate", "m12_rate", "m14_rate", "m11_rate", "m16_rate", "m13_rate")
 )
 t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-After dropping `m13_rate`, the VIF table shows lower multicollinearity overall, but a few variables still exceed the VIF \> 10 threshold. The highest remaining VIF belongs to `m5_rate` (proportion of discharges for people living in 20% most deprived areas).
-
-**Next step:** remove `m5_rate` from the matching model and re-run the VIF analysis to determine whether the remaining values fall below the high-VIF threshold and to assess any changes.
+**Next step:** evaluate the impact of removing `m2_rate` from the matching model.
 
 ```{r}
 #| label: multicollinearity - step 3
@@ -880,15 +933,21 @@ matching_vars <- c(
 # exclude those we don't want
 matching_vars <- setdiff(
   matching_vars,
-  c("m3_rate", "m12_rate", "m14_rate", "m13_rate", "m5_rate")
+  c(
+    "m3_rate",
+    "m12_rate",
+    "m14_rate",
+    "m11_rate",
+    "m16_rate",
+    "m13_rate",
+    "m2_rate"
+  )
 )
 t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-After excluding `m5_rate`, nine variables still show VIF \> 10. The highest of these is `m2_rate` (proportion of discharges for people aged under 26 years at referral).
-
-**Next step:** drop `m2_rate` from the matching model and recompute the VIFs to verify whether the remaining variables now fall below the high-VIF threshold.
+**Next step:** evaluate the impact of removing `m8_rate` from the matching model.
 
 ```{r}
 #| label: multicollinearity - step 4
@@ -902,15 +961,22 @@ matching_vars <- c(
 # exclude those we don't want
 matching_vars <- setdiff(
   matching_vars,
-  c("m3_rate", "m12_rate", "m14_rate", "m13_rate", "m5_rate", "m2_rate")
+  c(
+    "m3_rate",
+    "m12_rate",
+    "m14_rate",
+    "m11_rate",
+    "m16_rate",
+    "m13_rate",
+    "m2_rate",
+    "m8_rate"
+  )
 )
 t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-Removing `m2_rate` resulted in lower overall VIF scores, however the model fails to resolve so we should continue with the variable assessment. The highest of these is for `m10_rate` (proportion of contacts conducted where there was a qualified therapist present).
-
-**Next step:** remove `m10_rate` from the set of matching covariates and re-estimate the propensity scores and check whether the model stabilises.
+**Next step:** evaluate the impact of removing `m5_rate` from the matching model.
 
 ```{r}
 #| label: multicollinearity - step 5
@@ -928,19 +994,19 @@ matching_vars <- setdiff(
     "m3_rate",
     "m12_rate",
     "m14_rate",
+    "m11_rate",
+    "m16_rate",
     "m13_rate",
-    "m5_rate",
     "m2_rate",
-    "m10_rate"
+    "m8_rate",
+    "m5_rate"
   )
 )
 t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-After dropping `m17_rate`, five variables now exceed the VIF \> 10 threshold. The highest remaining VIF belongs to `m8_rate` (proportion of discharges for people who had a referral-to-treatment time within six weeks).
-
-**Next step:** remove `m8_rate`from the set of matching covariates and re-estimate the propensity scores and check whether the model stabilises.
+**Next step:** evaluate the impact of removing `m9_rate` from the matching model.
 
 ```{r}
 #| label: multicollinearity - step 6
@@ -958,20 +1024,20 @@ matching_vars <- setdiff(
     "m3_rate",
     "m12_rate",
     "m14_rate",
+    "m11_rate",
+    "m16_rate",
     "m13_rate",
-    "m5_rate",
     "m2_rate",
-    "m10_rate",
-    "m8_rate"
+    "m8_rate",
+    "m5_rate",
+    "m9_rate"
   )
 )
 t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-After dropping `m8_rate`, the VIF table shows lower multicollinearity overall, but two variables still exceed the VIF \> 10 threshold. The highest remaining VIF belongs to `o1_denom` (number of discharges for referrals that were taken on for treatment).
-
-**Next step:** drop `o1_denom` and re-run the model.
+**Next step:** evaluate the impact of removing `m7_rate` from the matching model.
 
 ```{r}
 #| label: multicollinearity - step 7
@@ -989,21 +1055,21 @@ matching_vars <- setdiff(
     "m3_rate",
     "m12_rate",
     "m14_rate",
+    "m11_rate",
+    "m16_rate",
     "m13_rate",
-    "m5_rate",
     "m2_rate",
-    "m10_rate",
     "m8_rate",
-    "o1_denom"
+    "m5_rate",
+    "m9_rate",
+    "m7_rate"
   )
 )
 t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-Removing `o1_denom` uncovered high VIF scores for six matching covariates. The highest of these is for `m6_rate` (proportion of discharges for people living in the 20% least deprived areas).
-
-**Next step:** drop `m6_rate` and re-run the model.
+**Next step:** evaluate the impact of removing `m15_rate` from the matching model.
 
 ```{r}
 #| label: multicollinearity - step 8
@@ -1021,13 +1087,15 @@ matching_vars <- setdiff(
     "m3_rate",
     "m12_rate",
     "m14_rate",
+    "m11_rate",
+    "m16_rate",
     "m13_rate",
-    "m5_rate",
     "m2_rate",
-    "m10_rate",
     "m8_rate",
-    "o1_denom",
-    "m6_rate"
+    "m5_rate",
+    "m9_rate",
+    "m7_rate",
+    "m15_rate"
   )
 )
 
@@ -1035,13 +1103,121 @@ t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-After dropping `m6_rate`, the VIF table now shows that all remaining variables are within threshold, however, the model still fails to converge.
+**Next step:** evaluate the impact of removing `o1_denom` from the matching model.
 
-The list of matching variables attained following this process is:
+```{r}
+#| label: multicollinearity - step 9
+#| cache: true
+
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(
+  matching_vars,
+  c(
+    "m3_rate",
+    "m12_rate",
+    "m14_rate",
+    "m11_rate",
+    "m16_rate",
+    "m13_rate",
+    "m2_rate",
+    "m8_rate",
+    "m5_rate",
+    "m9_rate",
+    "m7_rate",
+    "m15_rate",
+    "o1_denom"
+  )
+)
+
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+**Next step:** evaluate the impact of removing `m10_rate` from the matching model.
+
+```{r}
+#| label: multicollinearity - step 10
+#| cache: true
+
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(
+  matching_vars,
+  c(
+    "m3_rate",
+    "m12_rate",
+    "m14_rate",
+    "m11_rate",
+    "m16_rate",
+    "m13_rate",
+    "m2_rate",
+    "m8_rate",
+    "m5_rate",
+    "m9_rate",
+    "m7_rate",
+    "m15_rate",
+    "o1_denom",
+    "m10_rate"
+  )
+)
+
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+**Next step:** evaluate the impact of removing `m4_rate` from the matching model.
+
+```{r}
+#| label: multicollinearity - step 11
+#| cache: true
+
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(
+  matching_vars,
+  c(
+    "m3_rate",
+    "m12_rate",
+    "m14_rate",
+    "m11_rate",
+    "m16_rate",
+    "m13_rate",
+    "m2_rate",
+    "m8_rate",
+    "m5_rate",
+    "m9_rate",
+    "m7_rate",
+    "m15_rate",
+    "o1_denom",
+    "m10_rate",
+    "m4_rate"
+  )
+)
+
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+All matching variables now have VIF scores of 1, confirming they are suitable for propensity-score matching. The model has converged, so the matching process proceeds without issue.
+
+The set of matching variables now consists of:
 
 ```{r}
 #| label: multicollinearity - final list of variables
-#| cache: true
+#| cache: false
 # get the list of variables in a tibble
 
 df_matching_var_labels <-
@@ -1061,9 +1237,627 @@ df_matching_var_labels |>
   )
 ```
 
-This means we cannot proceed with propensity score matching and will proceed to another method, coarsened exact matching.
 
 # Analysis
+
+## Propensity score matching - March 2024
+
+Using this list of matching variables we can now re-examine the propensity score matching results for `r params$intervention_long_name`.
+
+The below plot is called a love plot (also known as a covariate balance plot) which visualises how well our matching variables are balanced between `r params$intervention_long_name` before and after applying a propensity-score matching process.
+
+Our matching variables are listed along the y-axis and the x-axis shows the standardised mean difference (SMD), which is a measure of how different the averages are between the two groups.
+
+Points in red indicate the differences between `r params$intervention_long_name` and all other Talking Therapy services before matching. Points in blue indicate the differences between `r params$intervention_long_name` and eight of the closest matched services.
+
+The dotted line is a reference at 0.2 SMD that indicates an acceptable imbalance threshold.
+
+```{r}
+#| label: propensity score matching new
+#| fig-height: 4
+#| message: false
+#| warning: false
+#| cache: true
+
+# set the matching formula
+formula_matching <-
+  formula(
+    paste0(
+      "flag_intervention ~ ",
+      paste0(matching_vars, collapse = " + ")
+    )
+  )
+
+# do the matching
+obj_matches <-
+  MatchIt::matchit(
+    data = df_prep,
+    formula = formula_matching,
+    distance = "glm",
+    method = "nearest",
+    ratio = 8,
+  )
+
+# review the covariate balance
+cobalt::love.plot(
+  x = obj_matches,
+  abs = TRUE,
+  thresholds = 0.2,
+  var.names = ls_labels_wrap,
+  stars = "raw",
+  drop.distance = FALSE,
+  var.order = "unadjusted"
+) +
+  ggplot2::theme_minimal(base_size = 16) +
+  ggplot2::scale_colour_manual(
+    values = c("Unadjusted" = "#ec6555", Adjusted = "#5881c1")
+  )
+```
+
+These results indicate that the matched services are reasonably close, though not perfect, comparators for `r params$intervention_long_name`.
+
+Following matching, both variables show improved balance between `r params$intervention_long_name` and the eight matched services, as evidenced by blue points being closer to zero than red points.
+
+Neither variable falls with the 0.2 Standardised Mean Difference (SMD) threshold after matching.
+
+The eight matched services identified through this process are listed in the table below:
+
+```{r}
+#| label: propensity score matches
+#| fig-height: 8
+#| cache: true
+
+# extract the matches
+matches <- MatchIt::get_matches(obj_matches)
+
+# show in a table
+matches |>
+  dplyr::select(name, ods_code) |>
+  dplyr::mutate(
+    ods_code = ods_code |>
+      as.factor() |>
+      forcats::fct_relevel(params$ods_intervention)
+  ) |>
+  dplyr::arrange(ods_code) |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::data_color(
+    columns = gt::everything(),
+    rows = ods_code == params$ods_intervention,
+    palette = "#f9bf07"
+  ) |>
+  gt::cols_label(
+    name = "Talking Therapies organisation",
+    ods_code = "ODS code"
+  )
+```
+
+### Parallel trends assumption
+
+The parallel trends assumption states that, if the intervention never occurred, `r params$intervention_long_name` and its control group would have followed the same trajectory over time. A difference-in-differences (DiD) analysis depends on this assumption because it uses the control group's pre-intervention trend as the counterfactual for `r params$intervention_long_name`.
+
+To check this assumption holds we look at the pre-intervention period and if the outcome trends for both groups move together (i.e. have similar slopes), the assumption is plausible.
+
+We will now assess the pre-intervention trends for `r params$intervention_long_name` (shown in orange) and each of the eight matched Talking Therapy services (shown in grey). Trendlines are overlaid on each plot to make it easier to judge whether the series move together.
+
+#### Centre for Psychology ANV01
+
+Outcome 1: ✔️ The trends are almost parallel, there is a hint of divergence but otherwise looks good
+
+Outcome 2: ❌ The trends are not parallel - they are slightly divergent
+
+```{r}
+#| label: PSM - centre for psychology
+#| fig-height: 8
+#| cache: true
+
+# plots comparing each matched service
+plot_list <-
+  purrr::map(
+    # select the matches - but exclude the project
+    .x = stringr::str_subset(
+      string = matches$ods_code,
+      pattern = params$ods_intervention,
+      negate = TRUE
+    ),
+    .f = \(.x) {
+      p <-
+        compare_matches_preintervention(
+          df = df,
+          selected_ods = c(params$ods_intervention, .x),
+          period_preintervention = zoo::as.yearmon(c("Jan 2022", "Mar 2024")),
+          trendline = TRUE
+        )
+      return(p)
+    }
+  )
+
+# display
+plot_list[[1]]
+```
+
+
+#### Dorking Healthcare Limited (DHC) (NNE)
+
+Outcome 1: ✔️ The trends are  parallel
+
+Outcome 2: ✔️ The trends are parallel
+
+```{r}
+#| label: PSM - dorking
+#| fig-height: 8
+#| cache: true
+plot_list[[2]]
+```
+
+
+#### St John's Health Centre (RQY58)
+
+Outcome 1: ✔️ The trends are almost parallel, despite the control service's data starting in late 2022
+
+Outcome 2: ✔️ The trends are parallel, despite the control service's data starting in late 2022
+
+```{r}
+#| label: PSM - st johns
+#| fig-height: 8
+#| cache: true
+plot_list[[3]]
+```
+
+#### NHS Buckinghamshire Talking Therapies (RNUDV)
+
+Outcome 1: ✔️ The trends are  parallel
+
+Outcome 2: ✔️ The trends are parallel
+
+```{r}
+#| label: PSM - buckinghamshire
+#| fig-height: 8
+#| cache: true
+plot_list[[4]]
+```
+
+#### Mind Matters Surrey NHS (RXX1Y)
+
+Outcome 1: ✔️ The trends are almost parallel, there is a hint of divergence but otherwise looks good
+
+Outcome 2: ✔️ The trends are parallel
+
+```{r}
+#| label: PSM - oxfordshire
+#| fig-height: 8
+#| cache: true
+plot_list[[5]]
+```
+
+#### NHS Oxfordshire Talking Therapies (RNUDT)
+
+Outcome 1: ✔️ The trends are parallel
+
+Outcome 2: ✔️ The trends are parallel
+
+```{r}
+#| label: PSM - oxfordshire foundation
+#| fig-height: 8
+#| cache: true
+plot_list[[6]]
+```
+
+#### Bootham Park Hospital (RX34F)
+
+Outcome 1: ✔️ The trends are almost parallel, there is a hint of divergence but otherwise looks good
+
+Outcome 2: ✔️ The trends are parallel
+
+```{r}
+#| label: PSM - bootham
+#| fig-height: 8
+#| cache: true
+plot_list[[7]]
+```
+
+#### The Counselling Foundation NGR01
+
+Outcome 1: ❌ The trends are not parallel, there is clear divergence
+
+Outcome 2: ❌ The trends are not parallel - they are convergent
+
+```{r}
+#| label: PSM - counselling foundation
+#| fig-height: 8
+#| cache: true
+plot_list[[8]]
+```
+
+### Matching summary
+
+A total of eight Talking Therapy services were matched with `r params$intervention_long_name` using *Propensity Score Matching (PSM)*. Of these, six had pre-intervention trends that visually match those of `r params$intervention_long_name`'s for both outcome measures.
+
+```{r}
+#| label: psm - matches with parallel trends
+#| cache: true
+
+# list out the matches with parallel pre-intervention trends
+matches_parallel_ods <- c("NNE", "RQY58", "RNUDV", "RXX1Y", "RNUDT", "RX34F")
+
+# add these controls to a list for use in the synthetic control section
+controls <- list(
+  "psm_all" = matches$ods_code,
+  "psm_parallel" = matches_parallel_ods
+)
+
+# display these in a table
+matches |>
+  dplyr::filter(ods_code %in% matches_parallel_ods) |>
+  dplyr::select(name, ods_code) |>
+  dplyr::arrange(ods_code) |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::cols_label(
+    name = "Talking Therapies organisation",
+    ods_code = "ODS code"
+  )
+```
+
+### Analysis
+
+Now we have matched `r params$intervention_long_name` with three other Talking Therapies services and assessed their likelihood of meeting the parallel trends assumption based on their pre-intervention data, let us review how the full time series looks for this group of services.
+
+#### Outcome 1
+
+```{r}
+#| label: psm - spaghetti plot1 outcome 1
+#| fig-height: 6
+#| cache: true
+
+# get a df with the details for our matched services
+df_analysis <-
+  df |>
+  dplyr::filter(
+    # limit to activity between Jul 2022 and Jul 2025
+    dplyr::between(
+      calc_month,
+      zoo::as.yearmon("Jan 2022"),
+      zoo::as.yearmon("Sep 2025")
+    ),
+    # limit to our matched services with parallel trends
+    ods_code %in% c(params$ods_intervention, matches_parallel_ods)
+  ) |>
+  # simplify the data
+  dplyr::select(ods_code, calc_month, o1_rate, o2_rate) |>
+  # create treatment and post indicators
+  dplyr::mutate(
+    treated = dplyr::if_else(ods_code == params$ods_intervention, 1L, 0L),
+    post = dplyr::if_else(calc_month >= params$zoo_intervention_month, 1L, 0L),
+    line_colour = dplyr::if_else(
+      ods_code == params$ods_intervention,
+      "#f9bf07",
+      adjustcolor("#9d928a", alpha.f = 0.5)
+    )
+  )
+
+# show a spaghetti plot for these services
+p <-
+  plot_spaghetti_plot(
+    df = df_analysis,
+    str_outcome = "o1_rate",
+    ods_intervention = params$ods_intervention,
+    str_title = "Outcome 1: discharges with 5+ treatment contacts",
+    str_subtitle = "",
+    zoo_intervention = params$zoo_intervention_month,
+    bool_intervention = TRUE,
+    .yearmon_scale_to = zoo::as.yearmon("Dec 2025")
+  )
+p
+# p |> plotly::ggplotly()
+```
+
+**What this chart shows:**
+
+-   Performance against outcome 1 is shown on the y-axis and time is along the x-axis.
+
+-   There are three time series displayed, one for `r params$intervention_long_name`, shown in orange, and one for each of the two of our matched services, shown in grey.
+
+-   Each series is identified by its ODS code at the end of the data in May 2025.
+
+-   The dotted line represents the start of `r params$intervention_long_name`'s interventions in `r params$zoo_intervention_month`.
+
+#### Outcome 2
+
+```{r}
+#| label: psm - spaghetti plot1 outcome 2
+#| fig-height: 6
+#| cache: true
+
+# show a spaghetti plot for these services
+p <-
+  plot_spaghetti_plot(
+    df = df_analysis,
+    str_outcome = "o2_rate",
+    ods_intervention = params$ods_intervention,
+    str_title = "Outcome 2: discharges achieving reliable recovery",
+    str_subtitle = "",
+    zoo_intervention = params$zoo_intervention_month,
+    bool_intervention = TRUE,
+    .yearmon_scale_to = zoo::as.yearmon("Dec 2025")
+  )
+p
+# p |> plotly::ggplotly()
+```
+
+#### Difference-in-Differences (DiD)
+
+The results of the DiD analyses are presented below:
+
+```{r}
+#| label: psm - did table
+#| cache: true
+#|
+# conduct did analysis on the matched service
+did <-
+  get_manual_did_estimation(
+    df = df_analysis,
+    ods_intervention = params$ods_intervention,
+    zoo_intervention = params$zoo_intervention_month
+  )
+
+# add to a combined summary (for sensitivity analysis)
+did_overall <-
+  did |>
+  dplyr::mutate(specification = "Main model (baseline)")
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  tibble::tibble(
+    specification = "PSM main model",
+    outcome = did$outcome,
+    estimate = did$estimate,
+    se = did$std.error
+  )
+
+# display
+did |>
+  dplyr::select(
+    outcome,
+    estimate,
+    conf.low,
+    conf.high,
+    p.value
+  ) |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::fmt_percent(
+    columns = c(estimate, conf.low, conf.high),
+    decimals = 2
+  ) |>
+  gt::cols_merge(
+    columns = c(conf.low, conf.high),
+    pattern = "{1} to {2}"
+  ) |>
+  gt::cols_label(
+    outcome = "Outcome",
+    estimate = "Difference-in-Differences (DiD) estimate",
+    conf.low = "95% confidence interval"
+  ) |>
+  gt::tab_style(
+    style = list(gt::cell_text(weight = "bold")),
+    locations = gt::cells_body(
+      columns = c(estimate, conf.low),
+      rows = p.value <= 0.05
+    )
+  ) |>
+  gt::cols_hide(columns = p.value) |>
+  gt::tab_source_note(gt::md(
+    "Statistically significant findings are shown in **bold**"
+  ))
+```
+
+This table summarises the Difference-in-Differences (DiD) analysis for `r params$intervention_long_name`'s interventions using the six control services identified using the Propensity Score Matching process and which exhibited parallel trends.
+
+The DiD reveals small estimated increases for both outcomes:  
+
+-  Outcome 1 shows a DiD estimate of 0.75%, with a 95% confidence interval ranging from -1.61% to 3.11%   
+
+-  Outcome 2 has a DiD estimate of 1.07%, with a 95% confidence interval of -1.01% to 3.15%  
+
+Since neither confidence interval excludes zero, **these findings are not statistically significant**, indicating that the observed differences could be due to chance rahter than a true effect.
+
+::: callout-tip
+#### Interpretation
+
+```{r}
+#| label: interpretation help psm
+#| cache: true
+
+# work out the total discharges in 12 months preceeding
+total_discharges <-
+  df |>
+  dplyr::filter(
+    ods_code == params$ods_intervention,
+    dplyr::between(
+      calc_month,
+      zoo::as.yearmon("Jun 2024"),
+      zoo::as.yearmon("May 2025")
+    )
+  ) |>
+  dplyr::summarise(
+    total = sum(o1_denom_discharges_count, na.rm = TRUE)
+  ) |>
+  dplyr::pull(total)
+
+# work out the expected number of people to benefit from the uplift
+people_benefit_o1 <- floor(total_discharges * (0.75 / 100))
+people_benefit_o2 <- floor(total_discharges * (1.07 / 100))
+```
+
+These findings indicate `r params$intervention_long_name`'s post-intervention performance exceeds the counterfactual for both outcomes, but the wide confidence intervals are too wide to support a definitive claim of effectiveness.
+
+Assuming the 1.07% gain is real, it translates to an additional **`r people_benefit_o2` people** achieving reliable recovery per year (based on `r params$intervention_long_name`'s annual discharge volume of `r scales::comma(total_discharges)` from June 2024 to May 2025).
+:::
+
+### Sensitivity analysis
+
+
+An important decision was made that led to the above analytical findings:  
+
+1. **Parallel trend selection** - We inspected the 8 matched control services visually and excluded two that did not follow `r params$intervention_long_name`'s pre-intervention trend.  
+
+Below we reassess the findings after relaxing this decision to determine whether the original conclusions hold or are sensitive to this analytical choice.
+
+#### Using all PSM controls
+
+What impact does using all 8 matched control services have on the findings?
+
+```{r}
+#| label: psm - sensitivity - all 8 controls
+#| cache: true
+
+# get a df with the details for our matched services
+df_analysis <-
+  df |>
+  dplyr::filter(
+    # limit to activity between Jan 2022 and Aug 2025
+    dplyr::between(
+      calc_month,
+      zoo::as.yearmon("Jan 2022"),
+      zoo::as.yearmon("Aug 2025")
+    ),
+    # limit to our matched services
+    ods_code %in% c(params$ods_intervention, controls$psm_all)
+  ) |>
+  # simplify the data
+  dplyr::select(ods_code, calc_month, o1_rate, o2_rate) |>
+  # create treatment and post indicators
+  dplyr::mutate(
+    treated = dplyr::if_else(ods_code == params$ods_intervention, 1L, 0L),
+    post = dplyr::if_else(calc_month >= params$zoo_intervention_month, 1L, 0L),
+    line_colour = dplyr::if_else(
+      ods_code == params$ods_intervention,
+      "#f9bf07",
+      adjustcolor("#9d928a", alpha.f = 0.5)
+    )
+  )
+
+# conduct did analysis on the two matched services
+did <-
+  get_manual_did_estimation(
+    df = df_analysis,
+    ods_intervention = params$ods_intervention,
+    zoo_intervention = params$zoo_intervention_month
+  )
+
+# add to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did |>
+      dplyr::mutate(specification = "Alternative 1 - use all 8 controls")
+  )
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  dplyr::bind_rows(
+    did_meta,
+    tibble::tibble(
+      specification = "PSM alternative 1 - use all 8 controls",
+      outcome = did$outcome,
+      estimate = did$estimate,
+      se = did$std.error
+    )
+  )
+
+
+# display as a table
+did |>
+  dplyr::select(
+    outcome,
+    estimate,
+    conf.low,
+    conf.high,
+    p.value
+  ) |>
+  gt::gt() |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::fmt_percent(
+    columns = c(estimate, conf.low, conf.high),
+    decimals = 2
+  ) |>
+  gt::cols_merge(
+    columns = c(conf.low, conf.high),
+    pattern = "{1} to {2}"
+  ) |>
+  gt::cols_label(
+    outcome = "Outcome",
+    estimate = "Difference-in-Differences (DiD) estimate",
+    conf.low = "95% confidence interval"
+  ) |>
+  gt::tab_style(
+    style = list(gt::cell_text(weight = "bold")),
+    locations = gt::cells_body(
+      columns = c(estimate, conf.low),
+      rows = p.value <= 0.05
+    )
+  ) |>
+  gt::cols_hide(columns = p.value) |>
+  gt::tab_source_note(gt::md(
+    "Statistically significant findings are shown in **bold**"
+  ))
+```
+
+The DiD analysis indicates modest estimated effects for both outcomes:
+
+-  Outcome 1 shows a DiD estimate of -0.8%, with a 95% confidence interval ranging from -3.41% to 1.82%  
+
+-  Outcome 2 has a DiD estimate of 2.03%, with a 95% confidence interval of -0.43% to 4.48%  
+
+Since neither confidence interval excludes zero, these results are not statistically significant, suggesting that the observed differences may be due to random variation rather than a true effect.
+
+#### Summary
+
+```{r}
+#| label: psm - sensitivity summary
+#| cache: true
+
+# display a summary table
+did_overall |>
+  # simplify
+  dplyr::select(
+    specification,
+    outcome,
+    did = estimate,
+    p.value,
+    conf.low,
+    conf.high
+  ) |>
+  # group by the sensitivity test
+  dplyr::group_by(specification) |>
+  gt::gt(row_group_as_column = TRUE) |>
+  gt::tab_options(quarto.disable_processing = TRUE) |>
+  gt::fmt_percent(columns = c(did, conf.low, conf.high), decimals = 2) |>
+  gt::cols_merge(columns = c(conf.low, conf.high), pattern = "{1} to {2}") |>
+  gt::tab_style(
+    style = list(gt::cell_text(weight = "bold")),
+    locations = gt::cells_body(
+      columns = c(did, conf.low),
+      rows = p.value <= 0.05
+    )
+  ) |>
+  gt::cols_hide(columns = p.value) |>
+  gt::cols_label(
+    outcome = "Outcome",
+    did = "DiD estimate",
+    conf.low = "95% confidence interval"
+  ) |>
+  gt::tab_source_note(gt::md(
+    "Statistically significant findings are shown in **bold**"
+  ))
+```
+
+These sensitivity tests **re-inforce** the main findings.
+
+*When all 8 matched services are used as controls*, the results reflect the main findings in that none of the estimates are statistically significant, as all confidence intervals include zero. Outcome 2 consistently shows a positive effect across both models, though not significant.
+
+These results imply that while there may be small effects, **there is insufficient evidence to conclude a meaningful impact** under either model.
 
 ## Coarsened exact matching - March 2024
 
@@ -1503,11 +2297,14 @@ did_overall <-
 
 # add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
 did_meta <-
-  tibble::tibble(
-    specification = "CEM main model",
-    outcome = did$outcome,
-    estimate = did$estimate,
-    se = did$std.error
+  dplyr::bind_rows(
+    did_meta,
+    tibble::tibble(
+      specification = "CEM main model",
+      outcome = did$outcome,
+      estimate = did$estimate,
+      se = did$std.error
+    )
   )
 
 # display
@@ -2302,13 +3099,14 @@ To assess the robustness to the choice of donor pool we re-ran the synthetic dif
 
 *September 2024* - The treatment effect drops for both outcomes, making Outcome 2 become negative, but the confidence intervals are wide enough that we cannot reject the null hypothesis of no difference.
 
-Overall, none of the estimates are statistically significant, as all 95% confidence intervals include zero. This suggest the intervention **does not have a robust or consistent effect** on either outcome and across differnet specifications.
+Overall, none of the estimates are statistically significant, as all 95% confidence intervals include zero. This suggest the intervention **does not have a robust or consistent effect** on either outcome and across different specifications.
 
 ## Supplementary analysis
 
 ```{r}
 #| label: supp - gather data
 #| cache: false
+#| warning: false
 supp1 <-
   delegate_supp_outcome_analysis(
     supp = "mutual_discharge",
@@ -2334,9 +3132,9 @@ supp2 <-
 
 To contextualise the results for out two primary outcomes, we conducted two supplementary analyses:
 
-1.  **Mutual discharge agreement** - the proportion of discharges jointly agreed up by patient and therapist
+1.  **Discharge reason** - examining the distribution of discharge reasons, with particular attention to cases where discharge was jointly agreed upon by both patient and therapist
 
-2.  **Reliable recovery** - the proportion of discharges that met criteria for reliable recovery
+2.  **Reliable recovery** - assessing the proportion of discharges that met the criteria for reliable recovery
 
 For each measure we compared:
 
@@ -2383,16 +3181,16 @@ readxl::read_xlsx(
   )
 ```
 
-This section examines the share of referrals coded as *Mutually agreed completion of treatment* (code 46) after a course of therapy.
+This section analyses the proportion of referrals coded as **Mutually Agreed Completion of Treatment** (code 46), indicating that both the patient and therapist concurred that the course of therapy had been successfully completed. Consistent with the primary analyses, we limit the sample to referrals with at least two treatment contacts to ensure inclusion of people who entered a course of care.
 
-This code indicates that both patient and therapist agree the treatment has been completed. As with the primary analyses, we restrict the sample to referrals with *at least two treatment contacts*, ensuring we are examining individuals who actually entered a course of care.
+Where data permits, we also examine referrals coded as **ended before the therapist planned** (code 47) and referrals that **ended earlier than the patient wanted** (code 48). Due to the requirements of the chi-squared analysis - which requires a minimum of five events per cell - these categories may be combined with 'Other codes' if referrals volumes are insufficient.
 
-The bar chart below displays `r params$intervention_long_name`'s data only. It indicates **no noticeable change** in the proportion of mutually-agreed discharges during the post-intervention period compared with the pre-intervention period.
+The bar chart below displays `r params$intervention_long_name`'s data only. Due to insufficient data, referrals that ended earlier than the patient desired have been grouped under 'Other codes'. The chart reveals a **modest decrease of 1.4 percentage points in discharges occurring earlier than the therapist had planned** in the group who received 5+ treatment contacts, alongside small increases in discharges by mutual agreement (0.7 percentage points) and those classified under 'Other codes' (0.7 percentage points) during the post-intervention period compared to the pre-intervention period.
 
 ```{r}
 #| label: supp - mutual - plot
 #| cache: false
-#| fig-height: 4
+#| fig-height: 7
 #| fig-width: 12
 
 # display a bar chart
@@ -2402,9 +3200,9 @@ supp1$bar_plot
 supp1$gt_chi2_results
 ```
 
-The chi-squared test confirms that the observed changes are **not statistically significant** across either treatment-intensity group.
+The chi-squared test indicates the observed changes are statistically significant for the **5+ treatment intensity group** (p = 0.049), while results for the **2-4 treatment intensity group** (p = 0.063) fall just above the conventional threshold for significance.
 
-These findings suggest that the interventions had no discernable effect on the proportion of referrals completed through mutual agreement between patient and therapist.
+These findings suggest that the intervention had a measurable impact on reducing the proportion of referrals that ended earlier than intended by the therapist.
 
 ### Achieving reliable recovery
 
@@ -2435,11 +3233,13 @@ These findings suggest that the interventions had no discernable effect on the p
 
 We estimated the impact of `r params$intervention_long_name`'s interventions using two complimentary DiD approaches:
 
+-   **Manual DiD** - `r params$intervention_long_name` was compared with 8 services selected through a propensity score matched (PSM) procedure
+
 -   **Manual DiD** - `r params$intervention_long_name` was compared with 10 services selected through a coarsened exact matched (CEM) procedure
 
 -   **Synthetic control DiD** - `r params$intervention_long_name` was contrasted with a synthetic counterfactual build from all available donor services.
 
-For the CEM and synthetic approaches we performed a series of sensitivity checks, for example, expanding the control pool and changing the intervention start date and using different matching methods.
+For the PSM, CEM and synthetic approaches we performed a series of sensitivity checks, for example, expanding the control pool and changing the intervention start date and using different matching methods.
 
 **No robust or consistent evidence** was found that the interventions improved therapy adherence or outcomes.
 

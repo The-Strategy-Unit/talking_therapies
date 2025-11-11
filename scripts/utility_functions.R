@@ -220,43 +220,43 @@ summarise_matching_variable_significance <- function(df, .yearmons, .labels) {
   formula1 <-
     o1_rate ~
       o1_denom_discharges_count +
-        m2_rate +
-        m3_rate +
-        m4_rate +
-        m5_rate +
-        m6_rate +
-        m7_rate +
-        m8_rate +
-        m9_rate +
-        m10_rate +
-        m11_rate +
-        m12_rate +
-        m13_rate +
-        m14_rate +
-        m15_rate +
-        m16_rate +
-        m17_rate
+      m2_rate +
+      m3_rate +
+      m4_rate +
+      m5_rate +
+      m6_rate +
+      m7_rate +
+      m8_rate +
+      m9_rate +
+      m10_rate +
+      m11_rate +
+      m12_rate +
+      m13_rate +
+      m14_rate +
+      m15_rate +
+      m16_rate +
+      m17_rate
 
   # formula for outcome 2
   formula2 <-
     o2_rate ~
       o1_denom_discharges_count +
-        m2_rate +
-        m3_rate +
-        m4_rate +
-        m5_rate +
-        m6_rate +
-        m7_rate +
-        m8_rate +
-        m9_rate +
-        m10_rate +
-        m11_rate +
-        m12_rate +
-        m13_rate +
-        m14_rate +
-        m15_rate +
-        m16_rate +
-        m17_rate
+      m2_rate +
+      m3_rate +
+      m4_rate +
+      m5_rate +
+      m6_rate +
+      m7_rate +
+      m8_rate +
+      m9_rate +
+      m10_rate +
+      m11_rate +
+      m12_rate +
+      m13_rate +
+      m14_rate +
+      m15_rate +
+      m16_rate +
+      m17_rate
 
   # summarise models
   summary_df <-
@@ -337,43 +337,43 @@ summarise_matching_variable_significance_preintervention <- function(
   formula1 <-
     o1_rate ~
       o1_denom_discharges_count +
-        m2_rate +
-        m3_rate +
-        m4_rate +
-        m5_rate +
-        m6_rate +
-        m7_rate +
-        m8_rate +
-        m9_rate +
-        m10_rate +
-        m11_rate +
-        m12_rate +
-        m13_rate +
-        m14_rate +
-        m15_rate +
-        m16_rate +
-        m17_rate
+      m2_rate +
+      m3_rate +
+      m4_rate +
+      m5_rate +
+      m6_rate +
+      m7_rate +
+      m8_rate +
+      m9_rate +
+      m10_rate +
+      m11_rate +
+      m12_rate +
+      m13_rate +
+      m14_rate +
+      m15_rate +
+      m16_rate +
+      m17_rate
 
   # formula for outcome 2
   formula2 <-
     o2_rate ~
       o1_denom_discharges_count +
-        m2_rate +
-        m3_rate +
-        m4_rate +
-        m5_rate +
-        m6_rate +
-        m7_rate +
-        m8_rate +
-        m9_rate +
-        m10_rate +
-        m11_rate +
-        m12_rate +
-        m13_rate +
-        m14_rate +
-        m15_rate +
-        m16_rate +
-        m17_rate
+      m2_rate +
+      m3_rate +
+      m4_rate +
+      m5_rate +
+      m6_rate +
+      m7_rate +
+      m8_rate +
+      m9_rate +
+      m10_rate +
+      m11_rate +
+      m12_rate +
+      m13_rate +
+      m14_rate +
+      m15_rate +
+      m16_rate +
+      m17_rate
 
   # get a summary df
   average_df <-
@@ -436,43 +436,43 @@ summarise_matching_variable_significance_preintervention_panel <- function(
   formula1 <-
     o1_rate ~
       o1_denom_discharges_count +
-        m2_rate +
-        m3_rate +
-        m4_rate +
-        m5_rate +
-        m6_rate +
-        m7_rate +
-        m8_rate +
-        m9_rate +
-        m10_rate +
-        m11_rate +
-        m12_rate +
-        m13_rate +
-        m14_rate +
-        m15_rate +
-        m16_rate +
-        m17_rate
+      m2_rate +
+      m3_rate +
+      m4_rate +
+      m5_rate +
+      m6_rate +
+      m7_rate +
+      m8_rate +
+      m9_rate +
+      m10_rate +
+      m11_rate +
+      m12_rate +
+      m13_rate +
+      m14_rate +
+      m15_rate +
+      m16_rate +
+      m17_rate
 
   # formula for outcome 2
   formula2 <-
     o2_rate ~
       o1_denom_discharges_count +
-        m2_rate +
-        m3_rate +
-        m4_rate +
-        m5_rate +
-        m6_rate +
-        m7_rate +
-        m8_rate +
-        m9_rate +
-        m10_rate +
-        m11_rate +
-        m12_rate +
-        m13_rate +
-        m14_rate +
-        m15_rate +
-        m16_rate +
-        m17_rate
+      m2_rate +
+      m3_rate +
+      m4_rate +
+      m5_rate +
+      m6_rate +
+      m7_rate +
+      m8_rate +
+      m9_rate +
+      m10_rate +
+      m11_rate +
+      m12_rate +
+      m13_rate +
+      m14_rate +
+      m15_rate +
+      m16_rate +
+      m17_rate
 
   # set up the panel data
   panel_df <-
@@ -573,10 +573,7 @@ summarise_matching_variable_significance_preintervention_panel <- function(
 #' @param title String to use for the plot title
 #' @param subtitle String to use for the plot subtitle
 #'
-#' @returns
-#'
-#' @export
-#' @examples
+#' @returns {ggplot2} plot
 plot_outcomes_over_time <- function(
   df,
   # org_code,
@@ -584,9 +581,20 @@ plot_outcomes_over_time <- function(
   var_outcome,
   trendline = FALSE,
   interventions = FALSE,
+  align = c("left", "centre", "right"),
+  separation_pct = 0.05,
   title = "",
   subtitle = ""
 ) {
+  # how should the labels be aligned
+  align <- match.arg(align)
+  align_numeric <- switch(
+    align,
+    "left" = 0,
+    "centre" = 0.5,
+    "right" = 1
+  )
+
   # get the organisational code from the df
   org_code <-
     df |>
@@ -610,7 +618,7 @@ plot_outcomes_over_time <- function(
     dplyr::filter(iapt_code == org_code) |>
     dplyr::arrange(calc_month) |>
     dplyr::mutate(
-      y_val = dplyr::row_number() * 0.05,
+      y_val = dplyr::row_number() * separation_pct,
       intervention_title = glue::glue("{intervention_title}")
     )
 
@@ -654,7 +662,8 @@ plot_outcomes_over_time <- function(
           y = y_val,
           label = intervention_title
         ),
-        hjust = 1,
+        # hjust = 1,
+        hjust = align_numeric,
         size = 6,
         colour = "#5881c1"
       )
@@ -1224,6 +1233,7 @@ get_vif_score_table <- function(matching_vars, df) {
 #' @param str_subtitle String - the subtitle for the plot
 #' @param zoo_intervention zoo::yearmon - the month when the intervention was introduced
 #' @param bool_intervention Boolean, TRUE = display the intervention start month, FALSE do not
+#' @param .yearmon_scale_to zoo::yearmon defining the upper limit of the x-axis scale
 #'
 #' @returns {ggplot2} object
 plot_spaghetti_plot <- function(
@@ -1233,10 +1243,16 @@ plot_spaghetti_plot <- function(
   str_title = "",
   str_subtitle = "",
   zoo_intervention,
-  bool_intervention = FALSE
+  bool_intervention = FALSE,
+  .yearmon_scale_to
 ) {
   # convert to masked variable
   var_outcome <- as.symbol(str_outcome)
+
+  # decide what the upper limit of the scale should be
+  if (missing(.yearmon_scale_to)) {
+    .yearmon_scale_to = max(df$calc_month)
+  }
 
   # create the plot
   p <-
@@ -1277,6 +1293,8 @@ plot_spaghetti_plot <- function(
         group = ods_code,
         label = ods_code
       ),
+      segment.color = adjustcolor("#5881c1", alpha.f = "0.5"),
+      segment.linetype = 2,
       hjust = "left",
       direction = "y",
       nudge_x = 2 / 12 # move to the right by two months
@@ -1289,10 +1307,10 @@ plot_spaghetti_plot <- function(
         y = {{ var_outcome }}
       ),
       colour = "#f9bf07",
-      linewidth = 2
+      linewidth = 3
     ) +
     # adjust the scales
-    zoo::scale_x_yearmon(limits = c(NA, zoo::as.yearmon("Aug 2025"))) +
+    zoo::scale_x_yearmon(limits = c(NA, .yearmon_scale_to + 2 / 12)) +
     ggplot2::scale_y_continuous(
       limits = c(0, NA),
       labels = scales::label_percent(accuracy = 1)
@@ -1413,6 +1431,7 @@ get_manual_did_estimation <- function(
 #' @param df_synth Tibble of data prepared for analysis by 'prepare_df_for_synthdid()' function
 #' @param .yearmon_intervention zoo::yearmon object defining the month the intervention started
 #' @param .yearmon_period zoo::yearmon vector defining the start of the analysis period (element 1) and the end of the analysis (element 2)
+#' @param .yearmon_scale_to zoo::yearmon defining the upper limit of the x-axis scale
 #' @param .ods_treated String ODS code for the treated service
 #' @param str_treated String name for the treated service
 #' @param summary_spec String description of the specification - used in the summary table for sensitivity analysis
@@ -1688,10 +1707,10 @@ delegate_supp_outcome_analysis <- function(
     "mutual_discharge" = {
       str_file = "df_outcome_supp_discharge_reasons.Rds"
       str_var = "osupp_1"
-      str_outcome = "calc_discharge_mutual_agreeement_flag"
+      str_outcome = "calc_discharge_reason_group"
       outcome_true = "Discharged via mutual agreement"
-      outcome_false = "Other discharge reason"
-      str_plot_title = "Discharged via 'mutually agreed completion of treatment'"
+      # outcome_false = "Other discharge reason"
+      str_plot_title = "Discharge Reason"
     },
 
     "reliable_recovery" = {
@@ -1720,6 +1739,89 @@ delegate_supp_outcome_analysis <- function(
     janitor::clean_names() |>
     dplyr::mutate(calc_month = zoo::as.yearmon(calc_referral_discharged_ym))
 
+  df_prep <- get_prepared_supplementary_df(
+    df = df,
+    ods_intervention = ods_intervention,
+    str_intervention = str_intervention,
+    ods_controls = ods_controls,
+    zoo_intervention = zoo_intervention,
+    zoo_period = zoo_period,
+    supp = supp,
+    obj_var = obj_var,
+    obj_outcome = obj_outcome,
+    outcome_true = outcome_true,
+    outcome_false = outcome_false
+  )
+
+  # prepare the df ready for chi-square analysis
+  df_chi2_prep <- get_df_chi2(
+    df = df_prep,
+    outcome = str_var,
+    str_intervention = str_intervention
+  )
+
+  # perform the chi-square analysis
+  df_chi2 <-
+    get_chisq(df = df_chi2_prep, str_intervention = str_intervention)
+
+  # format as a gt table
+  gt_chi2 <-
+    get_chisq_gt(df = df_chi2)
+
+  # get a bar plot illustrating changes pre-/post-intervention
+  p <- plot_supp_barplot(
+    df = df_chi2_prep,
+    str_intervention = str_intervention,
+    supp = supp,
+    str_plot_title = str_plot_title,
+    str_plot_subtitle = summarise_significance_subtitle(df = df_chi2),
+    outcome_true = outcome_true
+  )
+
+  # return the results
+  return(
+    list(
+      "df" = df, # the file as loaded from disc
+      "df_prep" = df_prep, # the df with processed fields
+      "df_chi2_prep" = df_chi2_prep, # the file prepared for chi-squared analysis
+      "bar_plot" = p, # the plot showing the proportions
+      "df_chi2_results" = df_chi2, # the compiled chi-squared results as a tibble
+      "gt_chi2_results" = gt_chi2 # the compiled chi-squared results as a gt table
+    )
+  )
+}
+
+
+#' Get Chi-Square analysis data
+#'
+#' @param df Tibble. Data loaded from disc.
+#' @param ods_intervention Character. ODS code for the intervention service.
+#' @param str_intervention Character. Name for the intervention service.
+#' @param ods_controls Character vector. The ODS codes to use as controls
+#' @param zoo_intervention zoo::yearmon(). The year-month the intervention started
+#' @param zoo_period zoo::yearmon() vector of length 2. The first element defines the start yearmonth, the second the end yearmonth.
+#' @param supp String either "mutual_discharge" or "reliable_recovery"
+#' @param obj_var Object. The variable containing count data, e.g. 'osupp_1' or 'osupp_2'
+#' @param obj_outcome Object. The variable containing the levels to report by, e.g. 'calc_discharge_reason_group' or 'calc_reliable_recovery_flag'
+#' @param outcome_true Character. What to recode a TRUE value to mean (osupp_2 only)
+#' @param outcome_false Character. What to recode a FALSE value to mean (osupp_2 only)
+#'
+#' @returns Tibble
+#'
+#' @noRd
+get_prepared_supplementary_df <- function(
+  df,
+  ods_intervention,
+  str_intervention,
+  ods_controls,
+  zoo_intervention,
+  zoo_period,
+  supp,
+  obj_var,
+  obj_outcome,
+  outcome_true,
+  outcome_false
+) {
   # process the key data features
   df_analysis <-
     df |>
@@ -1755,38 +1857,126 @@ delegate_supp_outcome_analysis <- function(
         true = "Pre-intervention",
         false = "Post-intervention"
       ) |>
-        forcats::fct(levels = c("Pre-intervention", "Post-intervention")),
-
-      # convert outcome
-      outcome_f = dplyr::if_else(
-        condition = {{ obj_outcome }},
-        true = outcome_true,
-        false = outcome_false
-      )
-    ) |>
-    # select features of interest
-    dplyr::select(
-      service_f,
-      period_f,
-      treatment_group_f,
-      outcome_f,
-      {{ obj_var }}
+        forcats::fct(levels = c("Pre-intervention", "Post-intervention"))
     )
 
-  # prepare the df ready for chi-square analysis
+  # process the outcome in supp1 differently from supp2
+  # determine settings depending on `supp`
+  switch(
+    supp,
+    "mutual_discharge" = {
+      # supp 1
+      df_analysis <-
+        df_analysis |>
+        dplyr::mutate(
+          # rename some of the codes
+          calc_discharge_reason_group = dplyr::case_match(
+            calc_discharge_reason_group,
+            "Early termination by Care Professional" ~ "Discharged earlier than Care Professional wanted",
+            "Early termination by Patient" ~ "Discharged earlier than Patient wanted",
+            .default = calc_discharge_reason_group
+          ),
+          # cast as a factor
+          outcome_f = calc_discharge_reason_group |>
+            forcats::fct() |>
+            forcats::fct_infreq()
+        ) |>
+        # select features of interest
+        dplyr::select(
+          service_f,
+          period_f,
+          treatment_group_f,
+          outcome_f,
+          {{ obj_var }}
+        )
+    },
+
+    "reliable_recovery" = {
+      # supp 2
+      df_analysis <-
+        df_analysis |>
+        dplyr::mutate(
+          # convert outcome
+          outcome_f = dplyr::if_else(
+            condition = calc_reliable_recovery_flag,
+            true = outcome_true,
+            false = outcome_false
+          )
+        ) |>
+        # select features of interest
+        dplyr::select(
+          service_f,
+          period_f,
+          treatment_group_f,
+          outcome_f,
+          {{ obj_var }}
+        )
+    }
+  )
+}
+
+#' Get the data ready for chi-squared analysis
+#'
+#' @param df Tibble. Output of `get_chisq_analysis()`
+#' @param outcome Character. The name of the variable containing the outcome measure. Options include "osupp_1" or "osupp_2".
+#' @param str_intervention Character. The name to use for the intervention service, e.g. "Devon"
+#'
+#' @returns Tibble
+#'
+#' @noRd
+get_df_chi2 <- function(
+  df,
+  outcome = c("osupp_1", "osupp_2"),
+  # str_var,
+  str_intervention
+) {
+  # convert to symbols
+  obj_var <- as.symbol(outcome)
+
+  # ensure a value is given
+  match.arg(outcome)
+
+  # default analysis
   df_chi2 <-
-    df_analysis |>
+    df |>
+    # filter just for the intervention service
+    dplyr::filter(service_f == str_intervention) |>
     # calculate the denominator
     dplyr::mutate(
       denom = sum({{ obj_var }}, na.rm = TRUE),
-      # denom = sum(outcome_f, na.rm = TRUE),
       .by = c(service_f, period_f, treatment_group_f)
     ) |>
     # calculate the numerator
     dplyr::summarise(
       num = sum({{ obj_var }}, na.rm = TRUE),
       .by = c(service_f, period_f, treatment_group_f, outcome_f, denom)
-    ) |>
+    )
+
+  # do some additional processing for osupp_1
+  if (outcome == "osupp_1") {
+    # chi-squared analysis requires at least 5 events per group otherwise
+    # the results are likely to be unreliable. This analysis checks the
+    # smallest frequency in each 'outcome_f' and any with fewer than 5
+    # are bundled under the 'Other codes' level.
+    df_chi2 <-
+      df_chi2 |>
+      # work out the lowest frequency of each outcome
+      dplyr::mutate(min_num = min(num, na.rm = TRUE), .by = outcome_f) |>
+      # group together outcomes with less than 5 people
+      dplyr::mutate(
+        outcome_f = outcome_f |>
+          forcats::fct_collapse("Other codes" = outcome_f[min_num < 5])
+      ) |>
+      # re-calculate the numerator
+      dplyr::summarise(
+        num = sum(num, na.rm = TRUE),
+        .by = c(service_f, period_f, treatment_group_f, outcome_f, denom)
+      )
+  }
+
+  # final processing for this table
+  df_chi2 <-
+    df_chi2 |>
     # calculate the rate
     dplyr::mutate(
       rate = num / denom,
@@ -1797,23 +1987,69 @@ delegate_supp_outcome_analysis <- function(
     ) |>
     # arrange for display
     dplyr::arrange(service_f, period_f, treatment_group_f)
+}
 
-  # visualise these results (just for the intervention site)
-  p <-
-    df_chi2 |>
-    dplyr::filter(
-      service_f == str_intervention,
-      outcome_f == outcome_true
-    ) |>
-    ggplot2::ggplot(
-      mapping = ggplot2::aes(
-        y = treatment_group_f,
-        x = rate,
-        fill = treatment_group_f
+plot_supp_barplot <- function(
+  df,
+  str_intervention,
+  supp,
+  str_plot_title,
+  str_plot_subtitle,
+  outcome_true
+) {
+  # visualise these results just for the intervention site
+  df <-
+    df |>
+    dplyr::filter(service_f == str_intervention) |>
+    # wrap the label to take up less space
+    dplyr::mutate(
+      outcome_f = forcats::fct_relabel(
+        .f = outcome_f,
+        .fun = stringr::str_wrap,
+        width = 25
+      ) |>
+        forcats::fct_infreq(w = num)
+    )
+
+  # facets
+  # 2x grid for osupp_1
+  # 1x wrap for osupp_2
+  if (supp == "mutual_discharge") {
+    # Outcome 1 - discharge reason
+    p <-
+      df |>
+      # begin the plot
+      ggplot2::ggplot(
+        mapping = ggplot2::aes(
+          x = rate,
+          y = outcome_f,
+          fill = treatment_group_f
+        )
+      ) +
+      # repeat as a grid, with treatment group as rows, and period as cols
+      ggplot2::facet_grid(
+        rows = ggplot2::vars(forcats::fct_rev(treatment_group_f)),
+        cols = ggplot2::vars(period_f)
       )
-    ) +
-    # repeat for each period in two columns
-    ggplot2::facet_wrap(facets = ~period_f, ncol = 2) +
+  } else {
+    # Outcome 2 - reliable recovery
+    p <-
+      df |>
+      dplyr::filter(outcome_f == outcome_true) |>
+      ggplot2::ggplot(
+        mapping = ggplot2::aes(
+          x = rate,
+          y = treatment_group_f,
+          fill = treatment_group_f
+        )
+      ) +
+      # repeat for each period in two columns
+      ggplot2::facet_wrap(facets = ~period_f, ncol = 2)
+  }
+
+  # continue with processing
+  p <-
+    p +
     # display as bar chart with labelled values
     ggplot2::geom_bar(stat = "identity") +
     ggplot2::geom_text(
@@ -1824,7 +2060,7 @@ delegate_supp_outcome_analysis <- function(
     ) +
     # ensure x-axis goes to 100% and a bit more space for the text
     ggplot2::scale_x_continuous(
-      limits = c(0, 1.2),
+      limits = c(0, 1.4),
       labels = scales::label_percent()
     ) +
     # themes
@@ -1833,7 +2069,12 @@ delegate_supp_outcome_analysis <- function(
       legend.position = "none",
       panel.grid = ggplot2::element_blank(),
       axis.text.x = ggplot2::element_blank(),
-      axis.title = ggplot2::element_blank()
+      axis.title = ggplot2::element_blank(),
+      axis.line = ggplot2::element_line(colour = "grey", linewidth = 0.5),
+
+      # facet strips
+      strip.placement = "outside",
+      strip.text = ggplot2::element_text(colour = "#5881c1", face = "bold")
     ) +
     ggplot2::scale_fill_manual(
       values = c(
@@ -1847,23 +2088,24 @@ delegate_supp_outcome_analysis <- function(
       subtitle = stringr::str_wrap(str_plot_subtitle, width = 60)
     )
 
-  # get separate df for each treatment group
-  df_temp <-
-    df_chi2 |>
+  # return the plot
+  return(p)
+}
+
+get_chisq <- function(df, str_intervention) {
+  # get separate dataframes for each treatment group
+  df_separate <-
+    df |>
     # only focus on the intervention service
     dplyr::filter(service_f == str_intervention) |>
     # nest the data for each treatment_group_f
     tidyr::nest(.by = treatment_group_f)
 
-  # browser()
-
-  # perform test and summarise the results
-  df_chi2_results <-
-    # df_temp |>
-    # iterate over each nested data and work out the chi-squared test results
+  # iterate over each tibble and perform chi-square test
+  df_results <-
     purrr::map2_dfr(
-      .x = df_temp$data,
-      .y = df_temp$treatment_group_f,
+      .x = df_separate$data,
+      .y = df_separate$treatment_group_f,
       .f = \(.x, .y) {
         # summarise each nested df
         .x |>
@@ -1871,25 +2113,57 @@ delegate_supp_outcome_analysis <- function(
             n = sum(num, na.rm = TRUE),
             .by = c(period_f, outcome_f)
           ) |>
-          # make into panel data
-          tidyr::pivot_wider(
-            names_from = outcome_f,
-            values_from = n
-          ) |>
-          # set the first column to rownames
-          tibble::column_to_rownames(var = "period_f") |>
-          # set to matrix and run the test
-          as.matrix() |>
+          # shape to a contingency table
+          xtabs(formula = n ~ period_f + outcome_f, data = _) |>
+          # analyse
           chisq.test() |>
-          # tidy for outputting
+          # prepare for output
           broom::tidy() |>
           dplyr::mutate(group = .y)
       }
     )
+}
 
+
+#' Summarise chi-squared statistical analysis in a sentence
+#'
+#' To be used as the subtitle for the {ggplot2} bar plot
+#'
+#' @param df Tibble. Results from df_chi2_prep
+#' @param threshold Numeric (default = 0.05). What probability to use as threshold for significance.
+#'
+#' @returns Character
+#'
+#' @noRd
+summarise_significance_subtitle <- function(df, threshold = 0.05) {
+  # identify if any group has a statistically significant difference
+  sig_groups <-
+    df |>
+    dplyr::filter(p.value < threshold) |>
+    dplyr::pull(group)
+
+  # Prepare the string description
+  if (length(sig_groups) == 2) {
+    "Both groups show statistically significant differences"
+  } else if (length(sig_groups) == 1) {
+    paste(sig_groups, "shows a statistically significant difference")
+  } else {
+    "No statistically significant differences detected between groups"
+  }
+}
+
+
+#' Get a {gt} formatted table of chi-square results
+#'
+#' @param df_chisq_results Tibble. Output from a chi-square analysis
+#'
+#' @returns {gt} table summarising results
+#'
+#' @noRd
+get_chisq_gt <- function(df) {
   # prepare the summary tibble as formatted gt table
-  gt_chi2_results <-
-    df_chi2_results |>
+  tab <-
+    df |>
     dplyr::group_by(method) |>
     dplyr::select(method, group, statistic, p.value, parameter) |>
     gt::gt(row_group_as_column = TRUE) |>
@@ -1942,15 +2216,79 @@ delegate_supp_outcome_analysis <- function(
       "Statistically significant results are shown in **bold** (*p*-values <= 0.05)"
     ))
 
-  # return the results
-  return(
-    list(
-      "df" = df, # the file as loaded from disc
-      "df_analysis" = df_analysis, # the df with processing
-      "df_chi2" = df_chi2, # the file prepared for chi-squared analysis
-      "bar_plot" = p, # the plot showing the proportions
-      "df_chi2_results" = df_chi2_results, # the compiled chi-squared results as a tibble
-      "gt_chi2_results" = gt_chi2_results # the compiled chi-squared results as a gt table
+  # return the result
+  return(tab)
+}
+
+supp1_prepare_data <- function(df) {
+  df_analysis <-
+    df |>
+    dplyr::filter(
+      # filter for services
+      ods_code %in% c(ods_)
     )
+}
+
+
+#' Scan a single file for package dependencies
+#'
+#' @param file_path
+#'
+#' @returns Character vector. A unqiue list of packages called by fully namespaced function calls.
+#'
+#' @examples
+#' scan_file_for_dependencies(file_path = "path_to_my_file.R")
+#'
+#' @noRd
+scan_file_for_dependencies <- function(file_path) {
+  # require a parameter specifying a path to a file
+  # match.arg(file_path)
+
+  # read the file line-by-line
+  lines <- readLines(file_path, warn = FALSE)
+
+  # check for matches in the pattern
+  matches <- regmatches(
+    lines,
+    gregexpr("\\b([a-zA-Z0-9\\.]+)::[a-zA-Z0-9_]+", lines)
   )
+
+  # extract the package details from matched lines and compile a unique list
+  pkgs <-
+    lapply(matches, function(x) sub("::.*", "", x)) |>
+    unlist() |>
+    unique()
+
+  # return the result
+  pkgs
+}
+
+#' Scan project for dependencies
+#'
+#' @description
+#' Scans the current working directory for .R and .qmd files, then searches each file for dependencies based on fully namespaced function calls, e.g. `dplyr::select()`.
+#'
+#' @returns Character vector.
+#'
+#' @examples
+#' scan_for_dependencies()
+#'
+#' @noRd
+scan_for_dependencies <- function() {
+  # list all files
+  all_files <- list.files(
+    getwd(),
+    pattern = "\\.R$|\\.qmd$",
+    recursive = TRUE,
+    full.names = TRUE
+  )
+
+  # call `scan_file_for_dependencies` for each one and collate a unique list of package dependencies
+  all_pkgs <-
+    lapply(all_files, scan_file_for_dependencies) |>
+    unlist() |>
+    unique()
+
+  # return the result
+  all_pkgs
 }
