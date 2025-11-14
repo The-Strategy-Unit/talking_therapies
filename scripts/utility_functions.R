@@ -1634,9 +1634,9 @@ display_did_summary_in_gt <- function(df, sensitivity_summary = FALSE) {
     ) |>
     # rename columns
     gt::cols_label(
-      outcome = "Outcome",
-      estimate = "Difference-in-Difference (DiD) estimate",
-      conf.low = "95% confidence interval (CI)"
+      outcome = gt::md("Outcome"),
+      estimate = gt::md("Difference-in-Difference<br>(DiD) estimate"),
+      conf.low = gt::md("95% confidence interval<br>(CI)")
     ) |>
     # show significant results in bold
     gt::tab_style(
@@ -1651,12 +1651,12 @@ display_did_summary_in_gt <- function(df, sensitivity_summary = FALSE) {
     # add a footnote to explain formatting
     gt::tab_source_note(gt::md(
       "Statistically significant findings are shown in **bold**"
-    )) |>
-    # adjust spacing
-    gt::cols_width(
-      outcome ~ gt::pct(15),
-      estimate ~ gt::pct(25)
-    )
+    ))
+  # # adjust spacing
+  # gt::cols_width(
+  #   outcome ~ gt::pct(15),
+  #   estimate ~ gt::pct(25)
+  # )
 
   # return the table
   return(gt)
@@ -2113,6 +2113,11 @@ get_chisq <- function(df, str_intervention) {
             n = sum(num, na.rm = TRUE),
             .by = c(period_f, outcome_f)
           ) |>
+          # drop any unused factor levels to avoid issues with chi-square statistic calculations with <5 values
+          dplyr::mutate(
+            period_f = period_f |> forcats::fct_drop(),
+            outcome_f = outcome_f |> forcats::fct_drop()
+          ) |>
           # shape to a contingency table
           xtabs(formula = n ~ period_f + outcome_f, data = _) |>
           # analyse
@@ -2291,4 +2296,111 @@ scan_for_dependencies <- function() {
 
   # return the result
   all_pkgs
+}
+
+#' Identify anomalies
+#'
+#' @param df Tibble. The dataset containing values for analysis.
+#' @param outcome Character. The name of the variable containing the outcome, e.g. "o1_rate".
+#' @param iqr_alpha Numeric. Controls the width of the "normal" range. Lower values are more conservative while higher values are less prone to incorrectly classifying "normal" observations.
+#'
+#' @returns Tibble. Records which demonstrate anomalous behaviour that could be removed from the dataset
+#'
+#' @noRd
+identify_anomalies <- function(
+  df,
+  outcome,
+  iqr_alpha = 0.025,
+  anomaly_threshold = 0.12
+) {
+  # conver the variable to a symbol for use in the following block
+  outcome <- as.symbol(outcome)
+
+  anomalies <-
+    df |>
+    # convert calc_month to a date
+    dplyr::mutate(calc_month_dt = zoo::as.Date(calc_month)) |>
+    # group by ods_code (so can work out what is anomalous for each service)
+    dplyr::group_by(dplyr::pick(dplyr::any_of("ods_code"))) |>
+    timetk::anomalize(
+      .date_var = calc_month_dt,
+      .value = {{ outcome }},
+      .iqr_alpha = iqr_alpha,
+      .message = FALSE
+    ) |>
+    # limit to just identified anomalies with more than 0.1 difference
+    dplyr::filter(anomaly == "Yes", anomaly_score >= anomaly_threshold)
+
+  return(anomalies)
+}
+
+identify_anomalies_gt <- function(anomalies) {
+  anomalies |>
+    dplyr::select(dplyr::any_of(c(
+      "ods_code",
+      "calc_month_dt",
+      "observed",
+      "anomaly_score"
+    ))) |>
+    gt::gt(row_group_as_column = TRUE) |>
+    gt::tab_options(quarto.disable_processing = TRUE) |>
+    # format the table
+    gt::fmt_percent(columns = gt::any_of("observed"), decimals = 0) |>
+    gt::fmt_date(columns = gt::any_of("calc_month_dt"), date_style = 20) |>
+    gt::cols_label(
+      calc_month_dt = "Month",
+      observed = "Anomalous observation",
+      anomaly_score = "Anomaly score"
+    ) |>
+    gt::tab_header(title = "Anomalous observations") |>
+    gt::tab_footnote(
+      footnote = "Identified using `anomalize()` function from the {timetk} package"
+    )
+}
+
+#' Display the results of a DiD analysis in a {gt} table
+#'
+#' @param did Tibble of results from a DiD analysis
+#'
+#' @returns {gt} table
+#'
+#' @noRd
+display_manual_did_results_as_gt <- function(did) {
+  tab <-
+    did |>
+    dplyr::select(
+      outcome,
+      estimate,
+      conf.low,
+      conf.high,
+      p.value
+    ) |>
+    gt::gt() |>
+    gt::tab_options(quarto.disable_processing = TRUE) |>
+    gt::fmt_percent(
+      columns = c(estimate, conf.low, conf.high),
+      decimals = 2
+    ) |>
+    gt::cols_merge(
+      columns = c(conf.low, conf.high),
+      pattern = "{1} to {2}"
+    ) |>
+    gt::cols_label(
+      outcome = "Outcome",
+      estimate = gt::md("Difference-in-Differences<br>(DiD) estimate"),
+      conf.low = gt::md("95% confidence interval<br>(CI)")
+    ) |>
+    gt::tab_style(
+      style = list(gt::cell_text(weight = "bold")),
+      locations = gt::cells_body(
+        columns = c(estimate, conf.low),
+        rows = p.value <= 0.05
+      )
+    ) |>
+    gt::cols_hide(columns = p.value) |>
+    gt::tab_source_note(gt::md(
+      "Statistically significant findings are shown in **bold**"
+    ))
+
+  return(tab)
 }
