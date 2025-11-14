@@ -1237,7 +1237,6 @@ df_matching_var_labels |>
   )
 ```
 
-
 # Analysis
 
 ## Propensity score matching - March 2024
@@ -1376,10 +1375,9 @@ plot_list <-
 plot_list[[1]]
 ```
 
-
 #### Dorking Healthcare Limited (DHC) (NNE)
 
-Outcome 1: ✔️ The trends are  parallel
+Outcome 1: ✔️ The trends are parallel
 
 Outcome 2: ✔️ The trends are parallel
 
@@ -1389,7 +1387,6 @@ Outcome 2: ✔️ The trends are parallel
 #| cache: true
 plot_list[[2]]
 ```
-
 
 #### St John's Health Centre (RQY58)
 
@@ -1406,7 +1403,7 @@ plot_list[[3]]
 
 #### NHS Buckinghamshire Talking Therapies (RNUDV)
 
-Outcome 1: ✔️ The trends are  parallel
+Outcome 1: ✔️ The trends are parallel
 
 Outcome 2: ✔️ The trends are parallel
 
@@ -1654,11 +1651,11 @@ did |>
 
 This table summarises the Difference-in-Differences (DiD) analysis for `r params$intervention_long_name`'s interventions using the six control services identified using the Propensity Score Matching process and which exhibited parallel trends.
 
-The DiD reveals small estimated increases for both outcomes:  
+The DiD reveals small estimated increases for both outcomes:
 
--  Outcome 1 shows a DiD estimate of 0.75%, with a 95% confidence interval ranging from -1.61% to 3.11%   
+-   Outcome 1 shows a DiD estimate of 0.75%, with a 95% confidence interval ranging from -1.61% to 3.11%
 
--  Outcome 2 has a DiD estimate of 1.07%, with a 95% confidence interval of -1.01% to 3.15%  
+-   Outcome 2 has a DiD estimate of 1.07%, with a 95% confidence interval of -1.01% to 3.15%
 
 Since neither confidence interval excludes zero, **these findings are not statistically significant**, indicating that the observed differences could be due to chance rahter than a true effect.
 
@@ -1697,10 +1694,9 @@ Assuming the 1.07% gain is real, it translates to an additional **`r people_bene
 
 ### Sensitivity analysis
 
+An important decision was made that led to the above analytical findings:
 
-An important decision was made that led to the above analytical findings:  
-
-1. **Parallel trend selection** - We inspected the 8 matched control services visually and excluded two that did not follow `r params$intervention_long_name`'s pre-intervention trend.  
+1.  **Parallel trend selection** - We inspected the 8 matched control services visually and excluded two that did not follow `r params$intervention_long_name`'s pre-intervention trend.
 
 Below we reassess the findings after relaxing this decision to determine whether the original conclusions hold or are sensitive to this analytical choice.
 
@@ -1806,9 +1802,9 @@ did |>
 
 The DiD analysis indicates modest estimated effects for both outcomes:
 
--  Outcome 1 shows a DiD estimate of -0.8%, with a 95% confidence interval ranging from -3.41% to 1.82%  
+-   Outcome 1 shows a DiD estimate of -0.8%, with a 95% confidence interval ranging from -3.41% to 1.82%
 
--  Outcome 2 has a DiD estimate of 2.03%, with a 95% confidence interval of -0.43% to 4.48%  
+-   Outcome 2 has a DiD estimate of 2.03%, with a 95% confidence interval of -0.43% to 4.48%
 
 Since neither confidence interval excludes zero, these results are not statistically significant, suggesting that the observed differences may be due to random variation rather than a true effect.
 
