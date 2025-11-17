@@ -1,0 +1,424 @@
+---
+title: "NHS Talking Therapies"
+subtitle: "Meta analysis"
+author: "Craig Parylo"
+date: today
+
+title-block-banner: '#151412'
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    embed-resources: true
+    fig-format: png
+    fig-width: 10
+    fig-height: 3
+    fig-dpi: 600
+    default-image-extension: svg
+    lightbox: true
+    editor: visual
+    favicon: "favicon.ico"
+    include-in-header:
+      text: |
+        <link rel="icon" type="image/x-icon" href="favicon.ico">
+brand: _brand.yml
+css: styles.css
+---
+
+```{r}
+#| label: setup
+#| context: setup
+
+# load in utility functions
+source(here::here('scripts', 'utility_functions.R'))
+
+# load all meta analysis summaries
+df_meta <-
+  load_all_rds_files_in_folder(
+    folder_path = here::here("data", "project", "did_estimates")
+  ) |>
+  # split out the specification into matching and model
+  dplyr::mutate(
+    matching = specification |>
+      stringr::str_to_lower() |>
+      stringr::str_extract(
+        # string = specification,
+        pattern = "psm|cem|synthdid"
+      ),
+    model_main = stringr::str_detect(string = specification, pattern = "main")
+  )
+
+## TODO
+# 1. Add in formatted name of the case study (from a lookup)
+# 2. Add in classification based on typology - so we can do subgroup analyses to see whether some types of intervention are more effective.
+
+```
+
+# About
+
+Meta-analysis is a statistical technique that combines results from multiple studies to produce a more precise and reliable estimate of treatment effects. By pooling evidence, it increases statistical power, reduces the influence of random variation and helps to identify consistent patterns across different analyses.
+
+An important consideration in meta-analysis is heterogeneity. Heterogeneity refers to the differences that can exist between studies, for example,
+
+-   in how interventions are delivered
+
+-   the way each service is configured
+
+-   the way outcomes are measured
+
+Rather than treating these differences as a problem, meta-analysis can explicitly assess them, helping researchers understand whether the treatment effect is consistent across contexts or varies depending on circumstances. This means meta-analysis not only improves the accuracy of estimates but also shines a light on where and why results might differ, giving a fuller picture of how an intervention works in practice.
+
+To account for this, a random-effects model is often used. This approach assumes the treatment treatment effect may vary across studies and incorporates that variation into the analysis, producing an average effect that reflects both the overall evidence and the differences between individual studies.
+
+Compared with a fixed-effect model, which assumes the treatment effect is identical across all studies, a random-effects model is better suited when there are multiple studies conducted in different intervention units. This is because it allows for genuine variation in the underlying effect size between units, reconising that differences in patient populations, local contexts or implementation fidelity can lead to real differences in outcomes. By modelling this variability, the random-effects approach produces an average effect that reflects both the overall evidence and the diversity of effects observed across units.
+
+## Interpretation guide
+
+### Heterogeneity variance
+
+There are two sources of variation causing observed effects to differ from study to study:
+
+-   sampling error
+
+-   between-study heterogeneity.
+
+**Cochran's Q**: can be used to check if there is *excess variation* in our data, i.e. more than can be explained from sampling error alone - this is assumed to be the result of between-study heterogeneity.
+
+See [Cochran's Q](https://doing-meta.guide/heterogeneity.html?q=tau#cochran-q) for more details.
+
+**Higgins and Thompson's I^2^**: another way to quantify between-study heterogeneity (based on Cochran's Q). Defined as the percentage of variability in the effect sizes that is not caused by sampling error.
+
+See [Higgins & Thompson's I^2^](https://doing-meta.guide/heterogeneity.html#i-squared) for more details.
+
+**H2 statistic**: ratio of the observed variation and the expected variance due to sampling error.
+
+See [H^2^ statistic](https://doing-meta.guide/heterogeneity.html#the-h2-statistic) for more details.
+
+**Tau-squared (τ^2^)**: quantifies the variance of the true effect sizes underlying our data. The square root of this (τ) is the standard deviation of the true effect sizes.
+
+See [Heterogeneity variance](https://doing-meta.guide/heterogeneity.html?q=tau#tau) for more details.
+
+In general, it is advisable to use multiple measures when characterising heterogeneity of a meta-analysis. It is recommended to at least report I^2^ (with confidence intervals), as well as prediction intervals, and interpret the results accordingly.
+
+### Other settings
+
+**Knapp-Hartung (KH) adjustment** controls the way the standard error (and thus the confidence intervals) for the pooled effect size is calculated. Applying KH is usually sensible to avoid the chance of false positives, especially when the number of studies is small.
+
+# Data
+
+This table presents estimates of treatment effect and standard error (se) from each of the projects broken by outcome, matching method and whether the model that produced it was the main model or a sensitivity test.
+
+
+```{r}
+#| label: data
+
+df_meta |>
+  dplyr::relocate(file, matching, model_main, .before = dplyr::everything()) |>
+  # dplyr::select(dplyr::any_of(c("file", "specification", "outcome", "estimate", "se"))) |>
+  reactable::reactable(
+    filterable = TRUE,
+    resizable = TRUE,
+    columns = list(
+      file = reactable::colDef(name = "project"),
+      estimate = reactable::colDef(
+        format = reactable::colFormat(percent = TRUE, digits = 1)
+      ),
+      se = reactable::colDef(
+        format = reactable::colFormat(percent = TRUE, digits = 2)
+      )
+    )
+  )
+```
+
+# Outcome 1
+
+## Propensity Score Matching (PSM)
+
+### Analysis output
+
+```{r}
+#| label: outcome 1 - psm - analysis
+
+# get our test data
+df_test <-
+  df_meta |>
+  dplyr::filter(
+    outcome == "Outcome 1",
+    matching == "psm",
+    model_main == TRUE
+  )
+
+# conduct the meta analysis
+test_meta <-
+  meta::metagen(
+    data = df_test,
+    TE = estimate,
+    seTE = se,
+    studlab = file,
+    common = FALSE,
+    random = TRUE,
+    prediction = TRUE,
+    method.random.ci = "HK" # recommended for most cases
+  )
+
+# output the analysis text
+test_meta
+```
+
+### Forest plot
+
+```{r}
+#| label: outcome 1 - psm - forest
+
+# output a forest plot
+meta::forest(
+  x = test_meta,
+  sortvar = TE,
+  prediction = TRUE
+)
+```
+
+### Interpretation
+
+## Coarsened Exact Matching (CEM)
+
+### Analysis output
+
+```{r}
+#| label: outcome 1 - cem - analysis
+
+# get our test data
+df_test <-
+  df_meta |>
+  dplyr::filter(
+    outcome == "Outcome 1",
+    matching == "cem",
+    model_main == TRUE
+  )
+
+# conduct the meta analysis
+test_meta <-
+  meta::metagen(
+    data = df_test,
+    TE = estimate,
+    seTE = se,
+    studlab = file,
+    common = FALSE,
+    random = TRUE,
+    prediction = TRUE,
+    method.random.ci = "HK" # recommended for most cases
+  )
+
+# output the analysis text
+test_meta
+```
+
+### Forest plot
+
+```{r}
+#| label: outcome 1 - cem - forest
+
+# output a forest plot
+meta::forest(
+  x = test_meta,
+  sortvar = TE,
+  prediction = TRUE
+)
+```
+
+### Interpretation
+
+## Synthetic DiD (SynthDiD)
+
+### Analysis output
+
+```{r}
+#| label: outcome 1 - synthdid - analysis
+
+# get our test data
+df_test <-
+  df_meta |>
+  dplyr::filter(
+    outcome == "Outcome 1",
+    matching == "synthdid",
+    model_main == TRUE
+  )
+
+# conduct the meta analysis
+test_meta <-
+  meta::metagen(
+    data = df_test,
+    TE = estimate,
+    seTE = se,
+    studlab = file,
+    common = FALSE,
+    random = TRUE,
+    prediction = TRUE,
+    method.random.ci = "HK" # recommended for most cases
+  )
+
+# output the analysis text
+test_meta
+```
+
+### Forest plot
+
+```{r}
+#| label: outcome 1 - synthdid - forest
+
+# output a forest plot
+meta::forest(
+  x = test_meta,
+  sortvar = TE,
+  prediction = TRUE
+)
+```
+
+### Interpretation
+
+# Outcome 2
+
+## Propensity Score Matching (PSM)
+
+### Analysis output
+
+```{r}
+#| label: outcome 2 - psm - analysis
+
+# get our test data
+df_test <-
+  df_meta |>
+  dplyr::filter(
+    outcome == "Outcome 2",
+    matching == "psm",
+    model_main == TRUE
+  )
+
+# conduct the meta analysis
+test_meta <-
+  meta::metagen(
+    data = df_test,
+    TE = estimate,
+    seTE = se,
+    studlab = file,
+    common = FALSE,
+    random = TRUE,
+    prediction = TRUE,
+    method.random.ci = "HK" # recommended for most cases
+  )
+
+# output the analysis text
+test_meta
+```
+
+### Forest plot
+
+```{r}
+#| label: outcome 2 - psm - forest
+
+# output a forest plot
+meta::forest(
+  x = test_meta,
+  sortvar = TE,
+  prediction = TRUE
+)
+```
+
+### Interpretation
+
+## Coarsened Exact Matching (CEM)
+
+### Analysis output
+
+```{r}
+#| label: outcome 2 - cem - analysis
+
+# get our test data
+df_test <-
+  df_meta |>
+  dplyr::filter(
+    outcome == "Outcome 2",
+    matching == "cem",
+    model_main == TRUE
+  )
+
+# conduct the meta analysis
+test_meta <-
+  meta::metagen(
+    data = df_test,
+    TE = estimate,
+    seTE = se,
+    studlab = file,
+    common = FALSE,
+    random = TRUE,
+    prediction = TRUE,
+    method.random.ci = "HK" # recommended for most cases
+  )
+
+# output the analysis text
+test_meta
+```
+
+### Forest plot
+
+```{r}
+#| label: outcome 2 - cem - forest
+
+# output a forest plot
+meta::forest(
+  x = test_meta,
+  sortvar = TE,
+  prediction = TRUE
+)
+```
+
+### Interpretation
+
+## Synthetic DiD (SynthDiD)
+
+### Analysis output
+
+```{r}
+#| label: outcome 2 - synthdid - analysis
+
+# get our test data
+df_test <-
+  df_meta |>
+  dplyr::filter(
+    outcome == "Outcome 2",
+    matching == "synthdid",
+    model_main == TRUE
+  )
+
+# conduct the meta analysis
+test_meta <-
+  meta::metagen(
+    data = df_test,
+    TE = estimate,
+    seTE = se,
+    studlab = file,
+    common = FALSE,
+    random = TRUE,
+    prediction = TRUE,
+    method.random.ci = "HK" # recommended for most cases
+  )
+
+# output the analysis text
+test_meta
+```
+
+### Forest plot
+
+```{r}
+#| label: outcome 2 - synthdid - forest
+
+# output a forest plot
+meta::forest(
+  x = test_meta,
+  sortvar = TE,
+  prediction = TRUE
+)
+```
+
+### Interpretation
