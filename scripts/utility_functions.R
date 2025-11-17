@@ -2404,3 +2404,57 @@ display_manual_did_results_as_gt <- function(did) {
 
   return(tab)
 }
+
+#' Load all .Rds files in a given folder
+#'
+#' @param folder_path Character. The path to the folder that contains one or more .Rds files
+#'
+#' @returns Tibble. Contains all the data in each .Rds file row-bound to a single tibble with the name of the file as a column variable.
+#'
+#' @noRd
+load_all_rds_files_in_folder <- function(folder_path) {
+  # check a path was supplied
+  check_folder_path(folder_path = folder_path)
+
+  # identify all .Rds files in the folder
+  rds_list <- list.files(folder_path, pattern = "\\.Rds$", full.names = TRUE)
+
+  # read all files to a single df
+  df <-
+    purrr::map_dfr(
+      .x = rds_list,
+      .f = \(.x) {
+        readr::read_rds(file = .x) |>
+          dplyr::mutate(
+            file = .x |> base::basename() |> tools::file_path_sans_ext()
+          )
+      }
+    )
+
+  # return the df
+  return(df)
+}
+
+#' Check folder path is valid
+#'
+#' @param folder_path Character. The path to the folder to check.
+#'
+#' @returns TRUE invisibly, when the path is found to be valid, otherwise aborts with a {cli} message.
+#'
+#' @noRd
+check_folder_path <- function(folder_path) {
+  if (!is.character(folder_path) || length(folder_path) != 1) {
+    cli::cli_abort(
+      message = "{.arg folder_path} must be a single character string."
+    )
+  }
+  if (nchar(folder_path) == 0) {
+    cli::cli_abort("{.arg folder_path} cannot be empty.")
+  }
+  if (!dir.exists(folder_path)) {
+    cli::cli_abort(
+      "{.arg {folder_path}} does not point to an existing directory."
+    )
+  }
+  invisible(TRUE)
+}
