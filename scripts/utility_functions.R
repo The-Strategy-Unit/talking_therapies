@@ -2458,23 +2458,3 @@ check_folder_path <- function(folder_path) {
   }
   invisible(TRUE)
 }
-
-
-describe_trajectory <- function(rate_per_year, str_outcome) {
-  # what is the direction
-  temp_direction <- dplyr::if_else(
-    condition = as.numeric(rate_per_year) > 0L,
-    true = "upward",
-    false = "downward"
-  )
-
-  # what is the rate as a percentage
-  temp_rate_perc <- scales::percent(rate_per_year, accuracy = 0.1)
-
-  # construct the description
-  trajectory_description <- glue::glue(
-    "{str_outcome} shows an overall {temp_direction} trend at a rate of {temp_rate_perc} per year"
-  )
-
-  return(trajectory_description)
-}
