@@ -2458,3 +2458,34 @@ check_folder_path <- function(folder_path) {
   }
   invisible(TRUE)
 }
+
+
+#' Describe a time-series trajectory
+#'
+#' @description
+#' This function is useful to create a subtitle for a time-series plot. It describes the general direction of the time-series.
+#'
+#' @param rate_per_year Numeric. A rate of change as derived from a linear regression of the time-series data, e.g. 0.0034
+#' @param str_outcome Character. The name of the outcome to include in the description, e.g. "Outcome 1"
+#'
+#' @returns Character of type {glue}. A concatenated character string that can be used as a subtitle for a time-series plot
+#'
+#' @noRd
+describe_trajectory <- function(rate_per_year, str_outcome) {
+  # what is the direction
+  temp_direction <- dplyr::if_else(
+    condition = as.numeric(rate_per_year) > 0L,
+    true = "upward",
+    false = "downward"
+  )
+
+  # what is the rate as a percentage
+  temp_rate_perc <- scales::percent(rate_per_year, accuracy = 0.1)
+
+  # construct the description
+  trajectory_description <- glue::glue(
+    "{str_outcome} shows an overall {temp_direction} trend at a rate of {temp_rate_perc} per year"
+  )
+
+  return(trajectory_description)
+}
