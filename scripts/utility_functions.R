@@ -2405,6 +2405,44 @@ display_manual_did_results_as_gt <- function(did) {
   return(tab)
 }
 
+display_manual_did_sensitvity_results_as_gt <- function(did) {
+  tab <-
+    did |>
+    # simplify
+    dplyr::select(
+      specification,
+      outcome,
+      did = estimate,
+      p.value,
+      conf.low,
+      conf.high
+    ) |>
+    # group by the sensitivity test
+    dplyr::group_by(specification) |>
+    gt::gt(row_group_as_column = TRUE) |>
+    gt::tab_options(quarto.disable_processing = TRUE) |>
+    gt::fmt_percent(columns = c(did, conf.low, conf.high), decimals = 2) |>
+    gt::cols_merge(columns = c(conf.low, conf.high), pattern = "{1} to {2}") |>
+    gt::tab_style(
+      style = list(gt::cell_text(weight = "bold")),
+      locations = gt::cells_body(
+        columns = c(did, conf.low),
+        rows = p.value <= 0.05
+      )
+    ) |>
+    gt::cols_hide(columns = p.value) |>
+    gt::cols_label(
+      outcome = "Outcome",
+      did = "DiD estimate",
+      conf.low = "95% confidence interval"
+    ) |>
+    gt::tab_source_note(gt::md(
+      "Statistically significant findings are shown in **bold**"
+    ))
+
+  return(tab)
+}
+
 #' Load all .Rds files in a given folder
 #'
 #' @param folder_path Character. The path to the folder that contains one or more .Rds files
