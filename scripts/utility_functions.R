@@ -2527,3 +2527,53 @@ describe_trajectory <- function(rate_per_year, str_outcome) {
 
   return(trajectory_description)
 }
+
+#' Interpolate missing month outcomes for intervention service
+#'
+#' @description
+#' Ensures the intervention service has all months as a time dimension in the data.
+#'
+#' @details
+#' If any months (defined as calc_month) are missing from a set of data for the intervention service then this function inserts the missing months then interpolates values for `o1_rate` and `o2_rate` using {zoo}'s `na.approx()` function based on values that come immediately before and after.
+#'
+#' @param df Tibble - data from the `df` object which contains all data for the evaluation
+#' @param .ods_intervention Character - the ODS code for the intervention service
+#'
+#' @returns Tibble of data with missing months inserted and values interpolated for both outcomes.
+interpolate_missing_month_outcomes_for_intervention_service <- function(
+  df,
+  .ods_intervention
+) {
+  # fill in missing data for intervention service
+  df_intervention <-
+    df |>
+    # filter just for our intervention service
+    dplyr::filter(ods_code %in% .ods_intervention) |>
+    # fill in missing months
+    tidyr::complete(
+      ods_code,
+      calc_month = seq(
+        min(calc_month, na.rm = TRUE),
+        max(calc_month, na.rm = TRUE),
+        by = 1 / 12
+      )
+    ) |>
+    # sort by month
+    dplyr::arrange(calc_month) |>
+    # interpolate missing value/s
+    dplyr::mutate(
+      o1_rate = zoo::na.approx(o1_rate, x = calc_month, na.rm = FALSE),
+      o2_rate = zoo::na.approx(o2_rate, x = calc_month, na.rm = FALSE)
+    )
+
+  # replace previous data for intervention service with this newly interpolated data
+  df_return <-
+    df |>
+    # remove previous records for the service
+    dplyr::filter(!ods_code %in% .ods_intervention) |>
+    # include the newly calculated values
+    dplyr::bind_rows(df_intervention)
+
+  # return the results
+  return(df_return)
+}
