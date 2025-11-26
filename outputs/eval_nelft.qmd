@@ -291,12 +291,12 @@ A draft version of these matching variables was shared by email with members of 
 
 ## Outcomes for `r params$intervention_long_name`
 
-`r params$intervention_long_name` discharges data is available from the beginning of 2022 with the most recent data point being June 2025.
+`r params$intervention_long_name` discharges data is available from the beginning of 2022 with the most recent data point being September 2025.
 
 ```{r}
 #| label: project discharges time series 1
 #| fig-height: 7
-#| cache: false
+#| cache: true
 
 p <-
   df |>
@@ -312,20 +312,21 @@ p <-
     geom = "segment",
     x = zoo::as.yearmon("Aug 2021"),
     xend = zoo::as.yearmon("Nov 2021"),
-    y = 780,
-    yend = 780,
+    y = 980,
+    yend = 980,
     colour = "#5881c1",
     arrow = ggplot2::arrow(type = "closed", length = ggplot2::unit(0.2, "cm"))
   ) +
   ggplot2::annotate(
     geom = "text",
     x = zoo::as.yearmon("Jul 2021"),
-    y = 780,
+    y = 980,
     label = "Discharges begin",
     hjust = 1,
     colour = "#5881c1"
   ) +
   zoo::scale_x_yearmon(limits = c(zoo::as.yearmon(c("Sep 2019")), NA)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA)) +
   # add in the rest of the plot
   ggplot2::geom_line() +
   ggplot2::geom_point() +
@@ -346,20 +347,12 @@ p
 # p |> plotly::ggplotly()
 ```
 
-Following the commencement of activity in January 2022, two months stand out for having notably lower referral discharge volumes:
-
--   **September 2024**: 2 discharges
-
--   **September 2025**: 2 discharges
-
-These periods may lead to erratic outcome performance, as the small number of discharges increases the likelihood of statistical volatility - making proportions more sensitive to individual variations.
-
 The time series for each of the outcome variables is shown below. Each plot includes a trendline in [orange]{style="color: #f9bf07;"} and a dotted line in [blue]{style="color: #5881c1;"} indicating when each of the interventions was started.
 
 ```{r}
 #| label: project outcome 1
 #| fig-height: 7
-#| cache: false
+#| cache: true
 
 # filter the data for the project and a suitable timeframe
 df_temp <-
@@ -414,7 +407,7 @@ df_temp |>
 ```{r}
 #| label: project outcome 2
 #| fig-height: 7
-#| cache: false
+#| cache: true
 
 # get a rate of increase for outcome 2 - recalculate
 lm_temp <-
@@ -462,7 +455,7 @@ The next two charts include only months in which each services recorded at least
 ```{r}
 #| fig-height: 7
 #| label: outcome 1 national trend
-#| cache: false
+#| cache: true
 
 # filter the data to make it easier to use
 df_temp <-
@@ -566,7 +559,7 @@ The upward national trend indicates overall improvement, but the wide dispersion
 #| fig-height: 7
 #| label: outcome 2 national trend
 #| warning: false
-#| cache: false
+#| cache: true
 
 # linear model
 lm_temp <-
@@ -653,8 +646,8 @@ In the initial matching run we include all matching variables and specify five n
 ```{r}
 #| label: matching_all_vars
 #| fig-height: 9
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # get a list of matching vars
 temp_vars <- stringr::str_subset(string = names(df), pattern = "^m.*_rate$")
@@ -756,8 +749,8 @@ First let us see the level of balance in the matching variables before any match
 
 ```{r}
 #| label: pre-matching covariate balance
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # set the matching formula
 formula_matching <-
@@ -813,11 +806,11 @@ Our goal is to identify variables that show large differences, because those are
 
 Variables with less than 0.1 difference are less promising for improvement. In this case:
 
--   `m13_rate` (M13 Proportion of contacts conducted outside of weekdays, 9am to 5pm)
+-   `m2_rate` (M13 Proportion of discharges for people aged under 26 years at referral)
 
 -   `m14_rate` (M14 Proportion of contacts conducted in English)
 
-**Recommendation:** drop `m13_rate` and `m14_rate` from the matching process as there is little scope to improve balance on these variables.
+**Recommendation:** drop `m2_rate` and `m14_rate` from the matching process as there is little scope to improve balance on these variables.
 
 ### Separation
 
@@ -829,8 +822,8 @@ Here we see a list of covariates for `r params$intervention_long_name` which hav
 
 ```{r}
 #| label: separation
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # list the variables likely to result in perfect separation
 df_prep |>
@@ -848,7 +841,7 @@ df_prep |>
   # filter for values of either 1 or 0
   dplyr::filter(
     value %in% c(0L, 1L),
-    !variable %in% c("m13_rate", "m14_rate") # already excluded from the above process
+    !variable %in% c("m2_rate", "m14_rate") # already excluded from the above process
   ) |>
   # add in variable descriptions
   dplyr::left_join(
@@ -869,7 +862,7 @@ df_prep |>
   )
 ```
 
-**Recommendation:** drop `m15_rate` and `m16_rate` from the matching process as they are likely to result in perfect separation.
+It is clear there are no covariates for `r params$intervention_long_name` which are likely to result in separation.
 
 ### Multicollinearity
 
@@ -882,8 +875,8 @@ In this section we identify strongly related matching variables using the Varian
 
 ```{r}
 #| label: multicollinearity - step 1
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # define which vars to include in this process
 matching_vars <- c(
@@ -893,18 +886,18 @@ matching_vars <- c(
 # exclude those we don't want
 matching_vars <- setdiff(
   matching_vars,
-  c("m13_rate", "m14_rate", "m15_rate", "m16_rate")
+  c("m2_rate", "m14_rate")
 )
 t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-**Next step:** evaluate the impact of removing `m12_rate` from the matching model.
+**Next step:** drop `m17_rate` from the matching model.
 
 ```{r}
 #| label: multicollinearity - step 2
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # define which vars to include in this process
 matching_vars <- c(
@@ -914,18 +907,18 @@ matching_vars <- c(
 # exclude those we don't want
 matching_vars <- setdiff(
   matching_vars,
-  c("m13_rate", "m14_rate", "m15_rate", "m16_rate", "m12_rate")
+  c("m2_rate", "m14_rate", "m17_rate")
 )
 t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-**Next step:** remove `m8_rate` from the matching model.
+**Next step:** remove `m7_rate` from the matching model.
 
 ```{r}
 #| label: multicollinearity - step 3
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # define which vars to include in this process
 matching_vars <- c(
@@ -935,25 +928,18 @@ matching_vars <- c(
 # exclude those we don't want
 matching_vars <- setdiff(
   matching_vars,
-  c(
-    "m13_rate",
-    "m14_rate",
-    "m15_rate",
-    "m16_rate",
-    "m12_rate",
-    "m8_rate"
-  )
+  c("m2_rate", "m14_rate", "m17_rate", "m7_rate")
 )
 t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-**Next step:** drop `m6_rate` from the matching model.
+**Next step:** drop `m3_rate` from the matching model.
 
 ```{r}
 #| label: multicollinearity - step 4
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # define which vars to include in this process
 matching_vars <- c(
@@ -963,26 +949,18 @@ matching_vars <- c(
 # exclude those we don't want
 matching_vars <- setdiff(
   matching_vars,
-  c(
-    "m13_rate",
-    "m14_rate",
-    "m15_rate",
-    "m16_rate",
-    "m12_rate",
-    "m8_rate",
-    "m6_rate"
-  )
+  c("m2_rate", "m14_rate", "m17_rate", "m7_rate", "m3_rate")
 )
 t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-**Next step:** remove `m5_rate` from the matching model.
+**Next step:** remove `m10_rate` from the matching model.
 
 ```{r}
 #| label: multicollinearity - step 5
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # define which vars to include in this process
 matching_vars <- c(
@@ -992,27 +970,18 @@ matching_vars <- c(
 # exclude those we don't want
 matching_vars <- setdiff(
   matching_vars,
-  c(
-    "m13_rate",
-    "m14_rate",
-    "m15_rate",
-    "m16_rate",
-    "m12_rate",
-    "m8_rate",
-    "m6_rate",
-    "m5_rate"
-  )
+  c("m2_rate", "m14_rate", "m17_rate", "m7_rate", "m3_rate", "m10_rate")
 )
 t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-**Next step:** remove `m3_rate`from the matching model.
+**Next step:** remove `m16_rate`from the matching model.
 
 ```{r}
 #| label: multicollinearity - step 6
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # define which vars to include in this process
 matching_vars <- c(
@@ -1023,27 +992,25 @@ matching_vars <- c(
 matching_vars <- setdiff(
   matching_vars,
   c(
-    "m13_rate",
+    "m2_rate",
     "m14_rate",
-    "m15_rate",
-    "m16_rate",
-    "m12_rate",
-    "m8_rate",
-    "m6_rate",
-    "m5_rate",
-    "m3_rate"
+    "m17_rate",
+    "m7_rate",
+    "m3_rate",
+    "m10_rate",
+    "m16_rate"
   )
 )
 t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-**Next step:** drop `m7_rate` from the matching model.
+**Next step:** drop `m9_rate` from the matching model.
 
 ```{r}
 #| label: multicollinearity - step 7
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # define which vars to include in this process
 matching_vars <- c(
@@ -1054,18 +1021,48 @@ matching_vars <- c(
 matching_vars <- setdiff(
   matching_vars,
   c(
-    "m13_rate",
+    "m2_rate",
     "m14_rate",
-    "m15_rate",
-    "m16_rate",
-    "m12_rate",
-    "m8_rate",
-    "m6_rate",
-    "m5_rate",
+    "m17_rate",
+    "m7_rate",
     "m3_rate",
-    "m7_rate"
+    "m10_rate",
+    "m16_rate",
+    "m9_rate"
   )
 )
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+**Next step:** drop `m13_rate` from the matching model.
+
+```{r}
+#| label: multicollinearity - step 8
+#| cache: true
+#| eval: true
+
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(
+  matching_vars,
+  c(
+    "m2_rate",
+    "m14_rate",
+    "m17_rate",
+    "m7_rate",
+    "m3_rate",
+    "m10_rate",
+    "m16_rate",
+    "m9_rate",
+    "m13_rate"
+  )
+)
+
 t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
@@ -1073,9 +1070,9 @@ t
 **Next step:** drop `o1_denom` from the matching model.
 
 ```{r}
-#| label: multicollinearity - step 8
-#| cache: false
-#| eval: false
+#| label: multicollinearity - step 9
+#| cache: true
+#| eval: true
 
 # define which vars to include in this process
 matching_vars <- c(
@@ -1086,16 +1083,15 @@ matching_vars <- c(
 matching_vars <- setdiff(
   matching_vars,
   c(
-    "m13_rate",
+    "m2_rate",
     "m14_rate",
-    "m15_rate",
-    "m16_rate",
-    "m12_rate",
-    "m8_rate",
-    "m6_rate",
-    "m5_rate",
-    "m3_rate",
+    "m17_rate",
     "m7_rate",
+    "m3_rate",
+    "m10_rate",
+    "m16_rate",
+    "m9_rate",
+    "m13_rate",
     "o1_denom"
   )
 )
@@ -1104,12 +1100,12 @@ t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-**Next step:** drop `m4_rate` from the matching model.
+**Next step:** drop `m5_rate` from the matching model
 
 ```{r}
-#| label: multicollinearity - step 9
-#| cache: false
-#| eval: false
+#| label: multicollinearity - step 10
+#| cache: true
+#| eval: true
 
 # define which vars to include in this process
 matching_vars <- c(
@@ -1120,18 +1116,17 @@ matching_vars <- c(
 matching_vars <- setdiff(
   matching_vars,
   c(
-    "m13_rate",
+    "m2_rate",
     "m14_rate",
-    "m15_rate",
-    "m16_rate",
-    "m12_rate",
-    "m8_rate",
-    "m6_rate",
-    "m5_rate",
-    "m3_rate",
+    "m17_rate",
     "m7_rate",
+    "m3_rate",
+    "m10_rate",
+    "m16_rate",
+    "m9_rate",
+    "m13_rate",
     "o1_denom",
-    "m4_rate"
+    "m5_rate"
   )
 )
 
@@ -1139,14 +1134,49 @@ t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-All matching variables now have VIF scores below 3, confirming they are suitable for propensity-score matching. The model has converged, so the matching process proceeds without issue; the only remaining warning relates to having a single treated service and can safely be ignored.
+**Next step:** drop `m12_rate` from the matching model
+
+```{r}
+#| label: multicollinearity - step 11
+#| cache: true
+#| eval: true
+
+# define which vars to include in this process
+matching_vars <- c(
+  stringr::str_subset(string = names(df_prep), pattern = "^o.*_denom$"),
+  stringr::str_subset(string = names(df_prep), pattern = "^m.*_rate$")
+)
+# exclude those we don't want
+matching_vars <- setdiff(
+  matching_vars,
+  c(
+    "m2_rate",
+    "m14_rate",
+    "m17_rate",
+    "m7_rate",
+    "m3_rate",
+    "m10_rate",
+    "m16_rate",
+    "m9_rate",
+    "m13_rate",
+    "o1_denom",
+    "m5_rate",
+    "m12_rate"
+  )
+)
+
+t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
+t
+```
+
+All matching variables now have VIF scores below 4, confirming they are suitable for propensity-score matching. The model has converged, so the matching process proceeds without issue; the only remaining warning relates to having a single treated service and can safely be ignored.
 
 The set of matching variables now consists of:
 
 ```{r}
 #| label: multicollinearity - final list of variables
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # get the list of variables in a tibble
 df_matching_var_labels <-
@@ -1185,8 +1215,8 @@ The dotted line is a reference at 0.2 SMD that indicates an acceptable imbalance
 #| fig-height: 7
 #| message: false
 #| warning: false
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # set the matching formula
 formula_matching <-
@@ -1223,19 +1253,19 @@ cobalt::love.plot(
   )
 ```
 
-These results indicate that the matched services are reasonably close, though not perfect, comparators for `r params$intervention_long_name`.
+These results indicate that the matched services are closer, though not perfect, comparators for `r params$intervention_long_name`.
 
-Following matching, three variables show improved balance between `r params$intervention_long_name` and the eight matched services, as evidenced by blue points being closer to zero than red points. However, one variable (M9) became notably more imbalanced post-matching and another variable (M10) became slightly more imbalanced.
+Following matching, three variables show improved balance between `r params$intervention_long_name` and the eight matched services, as evidenced by blue points being closer to zero than red points. However, one variable (M11) became notably more imbalanced post-matching.
 
-Three variables fall within the 0.2 Standardised Mean Difference (SMD) threshold.
+Two variables fall within the 0.2 Standardised Mean Difference (SMD) threshold.
 
 The eight matched services identified through this process are listed in the table below:
 
 ```{r}
 #| label: propensity score matches
 #| fig-height: 8
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # extract the matches
 matches <- MatchIt::get_matches(obj_matches)
@@ -1270,17 +1300,17 @@ To check this assumption holds we look at the pre-intervention period and if the
 
 We will now assess the pre-intervention trends for `r params$intervention_long_name` (shown in orange) and each of the eight matched Talking Therapy services (shown in grey). Trendlines are overlaid on each plot to make it easier to judge whether the series move together.
 
-#### Talking Matters Sefton (W5N3Z)
+#### Freeflow Counselling Service (DA1)
 
-Outcome 1: ❌ The trends are not parallel - they are convergent
+Outcome 1: ❌ The trends are not parallel - they are divergent
 
-Outcome 2: ✔️ The trends are more or less parallel
+Outcome 2: ❌ The trends are not parallel - they are divergent
 
 ```{r}
-#| label: PSM - talking matters sefton
+#| label: PSM - freeflow
 #| fig-height: 8
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # plots comparing each matched service
 plot_list <-
@@ -1310,115 +1340,115 @@ plot_list <-
 plot_list[[1]]
 ```
 
-#### Vita Health Group; Vitaminds Bristol, North Somerset & South Gloucestershire (NWC07)
+#### Fieldhead Hospital (RXG10)
 
-Outcome 1: ✔️ The trends are parallel
-
-Outcome 2: ✔️ The trends are parallel
-
-```{r}
-#| label: PSM - vita health group
-#| fig-height: 8
-#| cache: false
-#| eval: false
-plot_list[[2]]
-```
-
-#### Westminster Wellbeing Service (RV3DG)
-
-Outcome 1: ✔️ The trends are almost parallel - there is a hint of divergence
-
-Outcome 2: ✔️ The trends are parallel
-
-```{r}
-#| label: PSM - westminster
-#| fig-height: 8
-#| cache: false
-#| eval: false
-plot_list[[3]]
-```
-
-#### Mill House (RV3AR)
-
-Outcome 1: ✔️ The trends are almost parallel - there is a hint of divergence
-
-Outcome 2: ✔️ The trends are parallel
-
-```{r}
-#| label: PSM - mill house
-#| fig-height: 8
-#| cache: false
-#| eval: false
-plot_list[[4]]
-```
-
-#### Take Time to Talk (RV3L8)
-
-Outcome 1: ❌ The trends are not parallel - they are divergent
-
-Outcome 2: ✔️ The trends are parallel
-
-```{r}
-#| label: PSM - take time to talk
-#| fig-height: 8
-#| cache: false
-#| eval: false
-plot_list[[5]]
-```
-
-#### Warrington Psychological Service (NO202)
-
-Outcome 1: ❌ The trends are not parallel - they interesected around September 2022
+Outcome 1: ❌ The trends are not parallel - they are convergent
 
 Outcome 2: ❌ The trends are not parallel - they are divergent
 
 ```{r}
-#| label: PSM - warrington
+#| label: PSM - fieldhead hospital
 #| fig-height: 8
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
+plot_list[[2]]
+```
+
+#### Psychological Therapies Southampton Office (RDYDL)
+
+Outcome 1: ❌ The trends are not parallel - they are divergent
+
+Outcome 2: ❌ The trends are not parallel - they intersected around June 2023
+
+```{r}
+#| label: PSM - southampton
+#| fig-height: 8
+#| cache: true
+#| eval: true
+plot_list[[3]]
+```
+
+#### Croydon Psychological Therapies Service (Croydon IAPT) (RV5CJ)
+
+Outcome 1: ✔️ The trends are almost parallel - there is a hint of divergence
+
+Outcome 2: ❌ The trends are not parallel - they are divergent
+
+```{r}
+#| label: PSM - croydon
+#| fig-height: 8
+#| cache: true
+#| eval: true
+plot_list[[4]]
+```
+
+#### Wandsworth IAPT (RQY12)
+
+Outcome 1: ✔️ The trends are almost parallel
+
+Outcome 2: ✔️ The trends are almost parallel, there is a hint of divergence but they are close
+
+```{r}
+#| label: PSM - wandsworth
+#| fig-height: 8
+#| cache: true
+#| eval: true
+plot_list[[5]]
+```
+
+#### Grange Park Clinic Monkmouth Hospital Sunderland Locality (RX4K3)
+
+Outcome 1: ✔️ The trends are almost parallel
+
+Outcome 2: ✔️ The trends are almost parallel
+
+```{r}
+#| label: PSM - grange park
+#| fig-height: 8
+#| cache: true
+#| eval: true
 plot_list[[6]]
 ```
 
-#### IESO Digital Health (UK) (AM601)
+#### South Tyneside and Sunderland NHS FT (R0B)
 
 Outcome 1: ❌ The trends are not parallel - they are divergent
 
 Outcome 2: ✔️ The trends are almost parallel
 
 ```{r}
-#| label: PSM - ieso
+#| label: PSM - south tyneside
 #| fig-height: 8
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 plot_list[[7]]
 ```
 
-#### IAPT Services (RV3HC)
+#### Essex Partnership University NHS Foundation Trust (R1L)
 
-Outcome 1: ✔️ The trends are parallel
+Outcome 1: ❌ The trends are not parallel - they intersected around July 2023
 
-Outcome 2: ✔️ The trends are parallel
+Outcome 2: ❌ The trends are not parallel - they intersected around July 2023
 
 ```{r}
-#| label: PSM - iapt services
+#| label: PSM - essex
 #| fig-height: 8
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 plot_list[[8]]
 ```
 
 ### Matching summary
 
-A total of eight Talking Therapy services were matched with `r params$intervention_long_name` using *Propensity Score Matching (PSM)*. Of these, four had pre-intervention trends that visually match those of `r params$intervention_long_name`'s for both outcome measures.
+A total of eight Talking Therapy services were matched with `r params$intervention_long_name` using *Propensity Score Matching (PSM)*. Of these, two had pre-intervention trends that visually match those of `r params$intervention_long_name`'s for both outcome measures.
 
 ```{r}
 #| label: psm - matches with parallel trends
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # list out the matches with parallel pre-intervention trends
-matches_parallel_ods <- c("NWC07", "RV3DG", "RV3AR", "RV3HC")
+matches_parallel_ods <- c("RQY12", "RX4K3")
 
 # add these controls to a list for use in the synthetic control section
 controls <-
@@ -1449,8 +1479,8 @@ Now we have matched `r params$intervention_long_name` with other Talking Therapi
 ```{r}
 #| label: psm - spaghetti plot1 outcome 1
 #| fig-height: 6
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # get a df with the details for our matched services
 df_analysis <-
@@ -1485,7 +1515,7 @@ p <-
     str_outcome = "o1_rate",
     ods_intervention = params$ods_intervention,
     str_title = "Outcome 1: discharges with 5+ treatment contacts",
-    str_subtitle = "RW1 displays abnormal results in Sep 2024 and Sep 2025",
+    str_subtitle = "",
     zoo_intervention = params$zoo_intervention_month,
     bool_intervention = TRUE,
     .yearmon_scale_to = zoo::as.yearmon("Nov 2025")
