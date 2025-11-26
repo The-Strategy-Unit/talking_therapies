@@ -112,7 +112,43 @@ ls_labels <- get_variable_labels()
 
 # Executive summary
 
-- To complete at the end -
+While there are signals of benefit, especially for reliable recovery, the evidence is not strong or consistent enough to confirm effectiveness. A more rigorous evaluation design is needed to determine the true impact of these interventions.
+
+**Outcomes measured**
+
+-   Outcome 1: proportion of patients attending five or more treatment sessions.
+
+-   Outcome 2: proportion of patients achieving reliable recovery
+
+**Analytical methods**
+
+-   Manual difference-in-differences (DiD) using matched services via Propensity Score Matching (PSM) and Coarsened Exact Matching (CEM)
+
+-   Synthetic DiD using weighted synthetic controls
+
+-   Sensitivity analyses tested robustness by varying control groups and intervention start dates
+
+**Key findings**
+
+-   Across all three methods, Outcome 1 shows a significant reduction only in the CEM model, while Outcome 2 consistently shows no significant effects.
+
+**Limitations**
+
+-   Only one treated unit, leading to wide confidence intervals.
+
+-   Possible hidden interventions in control services.
+
+-   Staggered rollout of interventions complicates analysis.
+
+-   Synthetic control models are sensitive to outliers and tend to be more conservative in estimating standard error - which led to wider confidence intervals.
+
+**Recommendations**
+
+-   Conduct a randomised controlled trial (RCT) using matched services.
+
+-   Randomly assign services to intervention or control groups.
+
+-   Use pre-registered DiD or mixed-effects models with robustness checks.
 
 ```{r}
 #| label: List of interventions
@@ -2756,7 +2792,7 @@ did$did_plot
 
 -   Orange line - `r params$intervention_long_name`'s observed post-intervention trend.
 
-`r params$intervention_long_name`'s orange line does not rise as much as the dotted counterfactual, indicating a lower-than-expected effect in the post-intervention period. The estimated difference is 0.04% below the expected value. The 95% confidence interval spans -10.1% to +9.2%, meaning the true effect could be negative or positive. Consequently, the result is **not statistically significant**.
+`r params$intervention_long_name`'s orange line rises faster than the dotted counterfactual, indicating a higher-than-expected effect in the post-intervention period. The estimated difference is 0.5% above the expected value. The 95% confidence interval spans -5.9% to +6.9%, meaning the true effect could be negative or positive. Consequently, the result is **not statistically significant**.
 
 #### Contribution plot
 
@@ -2820,8 +2856,6 @@ people_benefit_o1 <- floor(total_discharges * temp_est[1])
 people_benefit_o2 <- floor(total_discharges * temp_est[2])
 ```
 
-These findings indicate `r params$intervention_long_name`'s post-intervention performance exceeds the counterfactual for outcomes 2, but the confidence interval is too wide to support a definitive claim of effectiveness.
-
 - Assuming the `r scales::percent(temp_est[1], accuracy = 0.01)` change is real, it translates to `r dplyr::if_else(temp_est[1] > 0, "an additional", "a reduction of")` `r people_benefit_o1` people receiving 5+ treatment contacts as part of their referral.
 
 - Assuming the `r scales::percent(temp_est[2], accuracy = 0.01)` change is real, it translates to `r dplyr::if_else(temp_est[2] > 0, "an additional", "a reduction of")` `r people_benefit_o2` people achieving reliable recovery.
@@ -2846,8 +2880,8 @@ What impact does using the matches returned from the propensity score matching (
 #| label: synthdid - sensitivity PSM - outcome 1
 #| fig-height: 7
 #| warning: false
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 set.seed(12345)
 
@@ -2901,14 +2935,14 @@ did_meta <-
 did$did_plot
 ```
 
-`r params$intervention_long_name` performed 6.8% above the synthetic control expectation, however, the 95% confidence interval (-3.6% to 17.1%) includes zero so we cannot make any definitive claim.
+`r params$intervention_long_name` performed 4.1% below the synthetic control expectation, however, the 95% confidence interval (-14.8% to 6.6%) includes zero so we cannot make any definitive claim.
 
 ```{r}
 #| label: synthdid - sensitivity PSM - outcome 2
 #| fig-height: 7
 #| warning: false
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 set.seed(12345)
 
@@ -2962,7 +2996,7 @@ did_meta <-
 did$did_plot
 ```
 
-`r params$intervention_long_name` performed 1.6% above the synthetic control expectation, yet the 95% confidence interval (-21.7% to 24.9%) includes zero so we cannot make any definitive claim.
+`r params$intervention_long_name` performed 0.7% above the synthetic control expectation, yet the 95% confidence interval (-15.2% to 16.7%) includes zero so we cannot make any definitive claim.
 
 #### Using matches from CEM
 
@@ -2972,8 +3006,8 @@ What impact does using the matches returned from the coarsened exact matching (C
 #| label: synthdid - sensitivity CEM - outcome 1
 #| fig-height: 7
 #| warning: false
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 set.seed(12345)
 
@@ -3027,14 +3061,14 @@ did_meta <-
 did$did_plot
 ```
 
-`r params$intervention_long_name`'s observed outcome was **6.5% higher** than the synthetic control expectation.yet the 95% confidence interval (-1.5% to 14.6%) includes zero so we cannot make any definitive claim.
+`r params$intervention_long_name`'s observed outcome was **1.8% below** the synthetic control expectation, and the 95% confidence interval (-1.9% to -1.6%) does not include zero which makes this **statistically significant**.
 
 ```{r}
 #| label: synthdid - sensitivity CEM - outcome 2
 #| fig-height: 7
 #| warning: false
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 set.seed(12345)
 
@@ -3087,14 +3121,14 @@ did_meta <-
 did$did_plot
 ```
 
-`r params$intervention_long_name`'s observed outcome was **1.3% lower** than the synthetic control expectation. However, the 95% confidence interval (-10.4% to 7.8%) includes zero, so the result is not statistically distinguishable from no effect.
+`r params$intervention_long_name`'s observed outcome was **0.2% lower** than the synthetic control expectation, and the 95% confidence interval (-0.5% to <0%) does not include zero, so the result is **statistically significant**.
 
 #### Summary
 
 ```{r}
 #| label: synthdid - sensitivity - summary table
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 did_overall |>
   display_did_summary_in_gt(sensitivity_summary = TRUE)
@@ -3122,7 +3156,7 @@ supp1 <-
     str_intervention = params$intervention_short_name,
     ods_controls = c("RAT"),
     zoo_intervention = params$zoo_intervention_month,
-    zoo_period = zoo::as.yearmon(c("Jul 2024", "Sep 2025"))
+    zoo_period = zoo::as.yearmon(c("Jan 2022", "Sep 2025"))
   )
 
 supp2 <-
@@ -3132,7 +3166,7 @@ supp2 <-
     str_intervention = params$intervention_short_name,
     ods_controls = c("RAT"),
     zoo_intervention = params$zoo_intervention_month,
-    zoo_period = zoo::as.yearmon(c("Jul 2024", "Sep 2025"))
+    zoo_period = zoo::as.yearmon(c("Jan 2022", "Sep 2025"))
   )
 ```
 
@@ -3191,7 +3225,7 @@ This section analyses the proportion of referrals coded as **Mutually Agreed Com
 
 Where data permits, we also examine referrals coded as **ended before the therapist planned** (code 47) and referrals that **ended earlier than the patient wanted** (code 48). Due to the requirements of the chi-squared analysis - which requires a minimum of five events per cell - these categories may be combined with 'Other codes' if referrals volumes are insufficient.
 
-The bar chart below displays `r params$intervention_long_name`'s data only. The chart highlights a **1.9 percentage point decrease in mutually agreed discharges** among individuals who received five or more treatment contacts in the post-intervention period, compared to the pre-intervention period. This shift was accompanied by small increases across the remaining categories.
+The bar chart below displays `r params$intervention_long_name`'s data only. The chart highlights broadly similar profiles in discharge reason pre- and post-intervention for the 5+ treatment intensity group. The 2-4 treatment intensity group indicates a 2.5 percentage point increase in the use of 'Other codes', accompanied by small reductions in the use of the remaining discharge codes.
 
 ```{r}
 #| label: supp - mutual - plot
@@ -3206,7 +3240,7 @@ supp1$bar_plot
 supp1$gt_chi2_results
 ```
 
-The chi-squared test confirms that the observed changes are **statistically significant** across both treatment-intensity groups.
+The chi-squared test confirms that the observed changes are **statistically significant** for the 2-4 treatment contact intensity group.
 
 These findings suggest that the interventions measurable effects on the proportion of referrals completed through mutual agreement between patient and therapist.
 
@@ -3237,7 +3271,7 @@ The chi-squared test confirms that the observed changes are not statistically si
 
 We estimated the impact of `r params$intervention_long_name`'s interventions using two complimentary DiD approaches:
 
--   **Manual DiD** - `r params$intervention_long_name` was compared with 10 services selected through a propensity score matched (PSM) and coarsened exact matched (CEM) procedures
+-   **Manual DiD** - `r params$intervention_long_name` was compared with services selected through a propensity score matched (PSM) and coarsened exact matched (CEM) procedures
 
 -   **Synthetic control DiD** - `r params$intervention_long_name` was contrasted with a synthetic counterfactual build from all available donor services.
 
@@ -3245,25 +3279,15 @@ For the CEM and synthetic approaches we performed a series of sensitivity checks
 
 ## Outcome 1
 
-Across all three methods, the DiD estimates for Outcome 1 are small and statistically insignificant (confidence intervals include zero).
-
-The direction of effect varies slightly; PSM and CEM both suggest a small negative effect, whereas SynthDiD suggests a small positive effect.
-
-There is no robust evidence of a treatment effect on Outcome 1, and findings are sensitive to the matching method used.
+Only the CEM baseline shows a statistically significant reduction in Outcome 1. PSM and synthdid estimates are small and not significant.
 
 ## Outcome 2
 
-All three methods show a positive DiD estimate for Outcome 2.
-
-Only the CEM analysis yields a statistically significant result (confidence interval does not include zero), suggesting a 4.56% increase attributable to the intervention.
-
-SynthDiD shows the largest point estimate (6.1%) but lacks precision (wide confidence interval).
-
-There is **moderate evidence of a positive treatment effect on Outcome 2**, particularly when using CEM. This suggests the interventions may have improved the outcome, through results vary by method.
+Across all three methods, Outcome 2 shows no statistically significant effect. Estimates are close to zero with confidence intervals crossing zero.
 
 ## Recommendations for future evaluation
 
-To obtain a definitive assessment of `r params$intervention_long_name`'s digital-resource and communication interventions, a more rigorous experimental design is needed:
+To obtain a definitive assessment of `r params$intervention_long_name`'s interventions, a more rigorous experimental design is needed:
 
 1.  Identify a cohort of comparable services using the matching variables described in this report
 
@@ -3298,7 +3322,3 @@ Comparing `r params$intervention_long_name` to other services that are also impr
 The CEM-derived donor pool contained services with extreme spikes. Outliers can dominate the weighted synthetic control, producing unstable counterfactuals and potentially misleading effect sizes.
 
 Taken together, these limitations suggest that the estimated impacts should be interpreted with caution and highlight the need for a more rigorous, preferably experimental, design in future evaluations.
-
-**Service onboarding**
-
-`r params$intervention_long_name` was a newly introduced service that brought together several previous separate Talking Therapy services. Reliable discharge activity began in July 2024, marking the start of a risking trend that peaked in July 2025. Because the commencement of interventions in `r params$zoo_intervention_month` occurred during this onboarding period, the observed changes in outcome variables may reflect transitional effects of service consolidation rather than the intervention itself.
