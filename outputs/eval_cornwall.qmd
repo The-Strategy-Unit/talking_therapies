@@ -1070,7 +1070,6 @@ t <- get_vif_score_table(matching_vars = matching_vars, df = df_prep)
 t
 ```
 
-
 **Next step:** drop `m6_rate` from the matching model.
 
 ```{r}
@@ -1266,14 +1265,14 @@ To check this assumption holds we look at the pre-intervention period and if the
 
 We will now assess the pre-intervention trends for `r params$intervention_long_name` (shown in orange) and each of the eight matched Talking Therapy services (shown in grey). Trendlines are overlaid on each plot to make it easier to judge whether the series move together.
 
-#### Lincolnshire Partnership NHS Foundation Trust (RP7)
+#### Denton House (RXA29)
 
 Outcome 1: ❌ The trends are not parallel - they are slightly convergent
 
 Outcome 2: ✔️ The trends are almost parallel, there is a sign of convergence
 
 ```{r}
-#| label: PSM - lincolnshire
+#| label: PSM - Denton House
 #| fig-height: 8
 #| cache: true
 
@@ -1302,40 +1301,40 @@ plot_list <-
 plot_list[[1]]
 ```
 
-#### NHS East Cheshire Talking Thearpies (AMC03)
+#### Herefordshire and Worcestershire Health AND Care NHS Trust (R1A)
 
 Outcome 1: ❌ The trends are not parallel - they are convergent
 
 Outcome 2: ❌ The trends are not parallel - they are convergent
 
 ```{r}
-#| label: PSM - east cheshire
+#| label: PSM - Herefordshire and Worcestershire 
 #| fig-height: 8
 #| cache: true
 plot_list[[2]]
 ```
 
-#### Bikur Cholim Ltd (DHA)
+#### Tees, Esk, Wear Valley NHS Trust (Durham) (RX301)
 
 Outcome 1: ❌ The trends are not parallel - they are divergent
 
 Outcome 2: ❌ The trends are not parallel - they are convergent
 
 ```{r}
-#| label: PSM - bikur cholim
+#| label: PSM - Durham
 #| fig-height: 8
 #| cache: true
 plot_list[[3]]
 ```
 
-#### Grange Park Clinic Monkmouth Hospital Sunderland Locality (RX4K3)
+#### First Step IAPT (RX40C)
 
 Outcome 1: ❌ The trends are not parallel - they are slightly convergent
 
 Outcome 2: ❌ The trends are not parallel - they are slightly convergent
 
 ```{r}
-#| label: PSM - grange park
+#| label: PSM - First Step 
 #| fig-height: 8
 #| cache: true
 plot_list[[4]]
@@ -1354,38 +1353,40 @@ Outcome 2: ✔️ The trends are parallel, there is a fluctuation but otherwise 
 plot_list[[5]]
 ```
 
-#### Beacon Counselling (DA6)
+#### Humber Teaching NHS Foundation Trust (RV9)
 
 Outcome 1: ❌ The trends are not parallel, additionally there is wide fluctuation in the control's series
 
 Outcome 2: ❌ The trendlines appear to be almost parallel, however there is too much fluctation in the control time series to be confident
+
 ```{r}
-#| label: PSM - beacon
+#| label: PSM - Humber
 #| fig-height: 8
 #| cache: true
 plot_list[[6]]
 ```
 
-#### Mersey Care NHSFT (RW4)
+#### Talking Matters Sefton (WN5N3Z)
 
 Outcome 1: ❌ The trends are not parallel - they are convergent
 
 Outcome 2: ❌ The trends are not parallel - they are convergent
+
 ```{r}
-#| label: PSM - mersey
+#| label: PSM - Talking Matters Sefton
 #| fig-height: 8
 #| cache: true
 plot_list[[7]]
 ```
 
-#### Sussex Partnership NHS Foundation Trust (RX2)
+#### Black Country Healthcare NHS Foundation Trust (TAJ)
 
 Outcome 1: ✔️ The trends are almost parallel, there is slight convergence but otherwise looks a good match
 
 Outcome 2: ✔️ The trends are almost parallel
 
 ```{r}
-#| label: PSM - sussex
+#| label: PSM - Black Country
 #| fig-height: 8
 #| cache: true
 plot_list[[8]]
@@ -1397,10 +1398,10 @@ A total of eight Talking Therapy services were matched with `r params$interventi
 
 ```{r}
 #| label: psm - matches with parallel trends
-#| cache: false
+#| cache: true
 
 # list out the matches with parallel pre-intervention trends
-matches_parallel_ods <- c("RRE", "RX2")
+matches_parallel_ods <- c("RRE", "TAJ")
 
 # add these controls to a list for use in the synthetic control section
 controls <-
@@ -1437,11 +1438,11 @@ Now we have matched `r params$intervention_long_name` with two other Talking The
 df_analysis <-
   df |>
   dplyr::filter(
-    # limit to activity between Jul 2022 and May 2025
+    # limit to activity between Jan 2022 and Sep 2025
     dplyr::between(
       calc_month,
       zoo::as.yearmon("Jan 2022"),
-      zoo::as.yearmon("Aug 2025")
+      zoo::as.yearmon("Sep 2025")
     ),
     # limit to our matched services with parallel trends
     ods_code %in% c(params$ods_intervention, controls$psm_parallel)
@@ -1470,6 +1471,7 @@ p <-
     zoo_intervention = params$zoo_intervention_month,
     bool_intervention = TRUE
   )
+
 p
 # p |> plotly::ggplotly()
 ```
@@ -1483,7 +1485,6 @@ p
 -   Each series is identified by its ODS code at the end of the data in August 2025.
 
 -   The dotted line represents the start of `r params$intervention_long_name`'s interventions in `r params$zoo_intervention_month`.
-
 
 #### Outcome 2
 
@@ -1504,6 +1505,7 @@ p <-
     bool_intervention = TRUE
   )
 
+
 p
 # p |> plotly::ggplotly()
 ```
@@ -1514,7 +1516,7 @@ The results of the DiD analyses are presented below:
 
 ```{r}
 #| label: psm - did table
-#| cache: false
+#| cache: true
 
 # conduct did analysis on the matched service
 did <-
@@ -1544,12 +1546,11 @@ did |> display_manual_did_results_as_gt()
 
 This table summarises the Difference-in-Differences (DiD) analysis for `r params$intervention_long_name`'s interventions using the two control services identified using the Propensity Score Matching process and which exhibited parallel trends.
 
-For outcome 1, Cornwall’s observed rate is about 4.4% higher than what the matched controls would predict, and the 95% confidence interval (0.5% to 8.2%) indicates the effect is statistically significant.
+This table summarises the Difference-in-Differences analysis for Cornwall’s interventions using the single control identified using the Propensity Score Matching process and which exhibited parallel trends.
 
+For outcome 1, Cornwall’s observed rate is about 0.82% higher than what the matched controls would predict, yet the 95% confidence interval (-2.55% to 4.19%) includes zero, indicating no statistically reliable difference.
 
-For outcome 2, Cornwall’s rate is about 5.53% higher than what the matched control would predict, and the 95% confidence interval (3.2% to 7.9%) indicates the effect is statistically significant.
-
-Since neither confidence interval excludes zero, **these findings are not statistically significant**, indicating that the observed differences could be due to chance rather than a true effect.
+For outcome 2, Cornwall’s rate is about 4.87% higher than what the matched control would predict, and the 95% confidence interval (2.7% to 7.05%) indicates the effect is statistically significant.
 
 ::: callout-tip
 #### Interpretation
@@ -1575,70 +1576,24 @@ total_discharges <-
   dplyr::pull(total)
 
 # work out the expected number of people to benefit from the uplift
-people_benefit_o1 <- floor(total_discharges * (-1.96 / 100))
-people_benefit_o2 <- floor(total_discharges * (1.55 / 100))
+people_benefit_o1 <- floor(total_discharges * (0.82 / 100))
+people_benefit_o2 <- floor(total_discharges * (4.87 / 100))
 ```
 
-These findings indicate `r params$intervention_long_name`'s post-intervention performance exceeds the counterfactual for outcomes 2, but the wide confidence interval is too wide to support a definitive claim of effectiveness.
+These findings indicate `r params$intervention_long_name`'s post-intervention performance exceeds the counterfactual for both outcomes, but the wide confidence interval in Outcome 1 is too wide to support a definitive claim of effectiveness meaning only Outcome 2 is statistically significant.
 
-Assuming the 1.55% gain is real, it translates to an additional <r people_benefit_o2> people achieving reliable recovery per year (based on `r params$intervention_long_name`'s annual discharge volume of \<r scales::comma(total_discharges)\> from June 2024 to May 2025).
+This means we have evidence that Cornwall’s rate of people being discharged with reliable recovery is higher than expected, and this improvement cannot be wholly explained by a larger proportion of clients receiving five or more therapeutic contacts during referral.
+
+Assuming the 4.87% gain is real, it translates to an additional `r people_benefit_o2` people achieving reliable recovery per year (based on `r params$intervention_long_name`'s annual discharge volume of `r scales::comma(total_discharges)` from June 2024 to May 2025).
 :::
 
 ### Sensitivity analysis
 
 Two important decisions were made that led to the above analytical findings:
 
-1.  **Parallel trend selection** - We inspected the 8 matched control services visually and excluded five that did not follow `r params$intervention_long_name`'s pre-intervention trend.
-
-2.  **Anomalous month removal** - For the remaining matched services we omitted several months for three services with extreme values, which yielded more stable performance across outcomes.
+1.  **Parallel trend selection** - We inspected the 8 matched control services visually and excluded six that did not follow `r params$intervention_long_name`'s pre-intervention trend.
 
 Below we reassess the findings after relaxing each of these decisions to determine whether the original conclusions hold are are sensitive to these analytical choices.
-
-#### Keeping anomalous months
-
-What impact does keeping the extreme values in the time series have?
-
-```{r}
-#| label: psm - sensitivity - anomalous months
-#| cache: true
-
-# conduct did analysis on the two matched services
-did <-
-  get_manual_did_estimation(
-    df = df_analysis,
-    ods_intervention = params$ods_intervention,
-    zoo_intervention = params$zoo_intervention_month
-  )
-
-# add to a combined summary (for sensitivity analysis)
-did_overall <-
-  dplyr::bind_rows(
-    did_overall,
-    did |>
-      dplyr::mutate(specification = "Alternative 1 - keep anomalous months")
-  )
-
-# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
-did_meta <-
-  dplyr::bind_rows(
-    did_meta,
-    tibble::tibble(
-      specification = "PSM alternative 1 - keep anomalous months",
-      outcome = did$outcome,
-      estimate = did$estimate,
-      se = did$std.error
-    )
-  )
-
-# show as a table
-did |> display_manual_did_results_as_gt()
-```
-
--   For outcome 1 the DiD estimate is slightly closer to zero and the confidence interval is wider.
-
--   For outcome 2 the DiD estimate increases, but the confidence interval is also wider.
-
-Sensitivity analyses relaxing the exclusion of anomalous months yielded similar point estimates for both outcomes, though with wider confidence intervals. These results suggest that the estimated effects are directionally consistent but not statistically robust, and should be interpreted with caution.
 
 #### Using all PSM controls
 
@@ -1647,16 +1602,16 @@ What impact does using all 8 matched control services have on the findings?
 ```{r}
 #| label: psm - sensitivity - all controls
 #| cache: true
-#| eval: false
+#| eval: true
 
 df_analysis3 <-
   df |>
   dplyr::filter(
-    # limit to activity between Jul 2022 and May 2025
+    # limit to activity between Jan 2022 and Sep 2025
     dplyr::between(
       calc_month,
       zoo::as.yearmon("Jan 2022"),
-      zoo::as.yearmon("Jul 2025")
+      zoo::as.yearmon("Sep 2025")
     ),
     # limit to our matched services
     ods_code %in% c(params$ods_intervention, controls$psm_all)
@@ -1672,16 +1627,7 @@ df_analysis3 <-
       "#f9bf07",
       adjustcolor("#9d928a", alpha.f = 0.5)
     )
-  ) |>
-  # remove the anomalous months (to isolate the effect of expanding controls)
-  dplyr::filter(
-    !(ods_code == params$ods_intervention &
-      calc_month %in%
-        zoo::as.yearmon(c("May 2022", "Sep 2023", "May 2024", "Jun 2024"))),
-    !(ods_code == "RWK79" &
-      calc_month %in% zoo::as.yearmon(c("Sep 2023", "Mar 2024"))),
-    !(ods_code == "RXX1Y" & calc_month %in% zoo::as.yearmon(c("Mar 2024")))
-  )
+  ) 
 
 # conduct did analysis
 did <-
@@ -1716,13 +1662,15 @@ did_meta <-
 did |> display_manual_did_results_as_gt()
 ```
 
--   For outcome 1 the DiD estimate becomes slightly more negative and the confidence interval is narrowed.
+-   For outcome 1 the DiD estimate becomes slightly more positive and the confidence interval is narrowed.
 
--   For outcome 2 the DiD estimate increases suggesting a stronger positive impact and the confidence interval is wider.
+-   For outcome 2 the DiD estimate increases suggesting a stronger positive impact and the confidence interval is narrowed.
 
-Expanding the control group to include all eight matched services yielded directionally consistent results for both outcomes. The estimated effect for outcome 1 became slightly more negative, while outcome 2 showed a stronger positive effect. Neither result reached statistical significance, but the findings suggest the estimated effects are robust to control group specification.
+Expanding the control group to include all eight matched services yielded directionally consistent results for both outcomes. The estimated effect for outcome 1 became slightly more positive, while outcome 2 showed a stronger positive effect.
 
-## Coarsened exact matching - March 2024
+These results imply that while there may be small effects, **there is insufficient evidence to conclude a meaningful impact** under all PSM controls.
+
+## Coarsened exact matching - Dec 2022
 
 Coarsened Exact Matching (CEM) offers an alternative approach to propensity score matching. First, each variable is grouped into broader categories (e.g., 0-19%, 20-39%, 40-59%, etc.). Then Talking Therapy services are matched **exactly** on these coarsened bins.
 
@@ -1739,7 +1687,7 @@ The same matching variables selected from the multicollinearity optimisation pro
 #| fig-height: 8
 #| message: FALSE
 #| cache: true
-#| eval: false
+#| eval: true
 
 # set the matching formula
 formula_matching <-
@@ -1756,7 +1704,7 @@ obj_matches <-
     data = df_prep,
     formula = formula_matching, # using the same formula as determined by VIF analysis
     method = "cem",
-    cutpoints = 3
+    cutpoints = 4
   )
 
 # review the covariate balance
@@ -1778,20 +1726,20 @@ These results show the matched services as close, but not perfect, matches for `
 
 After matching, most variables show improved similarity (the blue points are nearer to 0 than the red points) and four variables are within the 0.2 SMD threshold.
 
-Applying three cut-points allowed the CEM procedure to match `r params$intervention_long_name` with 6 Talking Therapy services. When we increased the number of cut-points to four - intended to boost sensitivity - only four matches were found.
+Applying four cut-points allowed the CEM procedure to match `r params$intervention_long_name` with 6 Talking Therapy services. When we increased the number of cut-points to five - intended to boost sensitivity - only one matches were found.
 
-The six matched services found using using five cut-points are:
+The six matched services found using using four cut-points are:
 
 ```{r}
 #| label: coarsened exact matches
 #| fig-height: 8
 #| cache: true
-#| eval: false
+#| eval: true
 
 matches <- MatchIt::match_data(obj_matches)
 
 # show in a table
-matches |>
+x <- matches |>
   dplyr::select(name, ods_code) |>
   dplyr::mutate(
     ods_code = ods_code |>
@@ -1811,6 +1759,8 @@ matches |>
     ods_code = "ODS code"
   )
 
+x
+
 # plots comparing each matched service
 plot_list <-
   purrr::map(
@@ -1824,7 +1774,7 @@ plot_list <-
         compare_matches_preintervention(
           df = df,
           selected_ods = c(params$ods_intervention, .x),
-          period_preintervention = zoo::as.yearmon(c("Jan 2022", "Feb 2025")),
+          period_preintervention = zoo::as.yearmon(c("Jan 2022", "Dec 2022")),
           trendline = TRUE
         )
       return(p)
@@ -1834,114 +1784,112 @@ plot_list <-
 
 ### Parallel trends assumption
 
-We now assess the parallel trends for `r params$intervention_long_name` (shown in orange) and each of the 20 matched Talking Therapy services (shown in grey). Trendlines are overlaid on each plot to make it easier to judge whether the series move together.
+We now assess the parallel trends for `r params$intervention_long_name` (shown in orange) and each of the 6 matched Talking Therapy services (shown in grey). Trendlines are overlaid on each plot to make it easier to judge whether the series move together.
 
-#### Mind in the City, Hackney and Waltham Forest (DH0)
+#### Vita Health Group Newcastle IAPT (C2J4D)
 
-**Outcome 1:** ❌ The trends are not parallel - they are convergent
+**Outcome 1:** ❌ The trends are not parallel -  they intersected in late 2022
 
-**Outcome 2:** ❌ The trends are not parallel - they intersected in late 2022
-
+**Outcome 2:** ✔️ The trends are almost parallel,there is a hint of divergent but overall a close match
 ```{r}
-#| label: cem - mind in the city
+#| label: cem - Vita Health Newcastle
 #| fig-height: 8
 #| cache: true
-#| eval: false
+#| eval: true
+
 
 plot_list[[1]]
 ```
 
-#### Whittington Health NHS Trust (RKE)
+#### Alliance Psychology Services LTD (NJG)
 
-**Outcome 1:** ✔️ The trends are almost parallel
+**Outcome 1:** ❌ The trends are not parallel - they are convergent
 
-**Outcome 2:** ✔️ The trends are parallel
+**Outcome 2:** ✔️ The trends are almost parallel,there is a hint of convergent but overall a close match
 
 ```{r}
-#| label: cem - whittington
+#| label: cem - Alliance Psychology 
 #| fig-height: 8
 #| cache: true
-#| eval: false
+#| eval: true
 
 plot_list[[2]]
 ```
 
-#### Oxleas NHS Foundation Trust (RPG)
+#### Livewell Southwest (NR5)
 
-**Outcome 1:** ✔️ The trends are almost parallel, there was some differences in 2022 but these appear to have resolved throughout the rest of the time series
+**Outcome 1:** ✔️ The trends are almost parallel, there was a convergent in April 2022 to June 2022 but these appear to have resolved throughout the rest of the time series
 
 **Outcome 2:** ✔️ The trends are parallel
 
 ```{r}
-#| label: cem - oxleas
+#| label: cem - Livewell Southwest
 #| fig-height: 8
 #| cache: true
-#| eval: false
+#| eval: true
 
 plot_list[[3]]
 ```
 
-#### Homerton Healthcare NHS Foundation Trust (RQX)
+#### Vita Health Group Vitaminds West Essex (NWC08)
 
-**Outcome 1:** ✔️ The trends are almost parallel
+**Outcome 1:** ❌ The trends are not parallel - they are convergent
 
-**Outcome 2:** ✔️ The trends are parallel
+**Outcome 2:** ❌ The trends are not parallel - they are convergent
 
 ```{r}
-#| label: cem - homerton
+#| label: cem - Vitaminds West Essex
 #| fig-height: 8
 #| cache: true
-#| eval: false
+#| eval: true
 
 plot_list[[4]]
 ```
 
-#### Take Time to Talk (RV3L8)
+#### Wallsend Health Centre (RTF61)
 
 **Outcome 1:** ✔️ The trends are parallel
 
 **Outcome 2:** ✔️ The trends are parallel
 
 ```{r}
-#| label: cem - take time to talk
+#| label: cem - Wallsend
 #| fig-height: 8
 #| cache: true
-#| eval: false
+#| eval: true
 
 plot_list[[5]]
 ```
 
-#### Southwark Psychological Therapies Services (Southwarck IAPT) (RV5CG)
+#### Self Help Services (Stockport) (T6G0K)
 
 **Outcome 1:** ✔️ The trends are parallel
 
 **Outcome 2:** ✔️ The trends are parallel
 
 ```{r}
-#| label: cem - southwark
+#| label: cem - Stockport
 #| fig-height: 8
 #| cache: true
-#| eval: false
+#| eval: true
 
 plot_list[[6]]
 ```
 
 ### Matching summary
 
-A total of 6 Talking Therapy services were matched with `r params$intervention_long_name` using *Coarsened Exact Matching (CEM)*. Of these, 5 exhibited pre-intervention trends that closely align with those of `r params$intervention_long_name` for both outcome measures.
+A total of 6 Talking Therapy services were matched with `r params$intervention_long_name` using *Coarsened Exact Matching (CEM)*. Of these, 3 exhibited pre-intervention trends that closely align with those of `r params$intervention_long_name` for both outcome measures.
 
 ```{r}
 #| label: cem - matches with parallel trends
 #| cache: true
-#| eval: false
+#| eval: true
 
 # list out the matches with parallel pre-intervention trends
 matches_parallel_ods <- c(
-  "RKE",
-  "RPG",
-  "RQX",
-  "RV3L8",
-  "RV5CG"
+  "NR5",
+  "RTF61",
+  "T6G0K"
 )
 
 # add these controls to a list for use in the synthetic control section
@@ -1968,7 +1916,7 @@ matches |>
 
 ### Analysis
 
-Now we have matched `r params$intervention_long_name` with 5 other Talking Therapy services and assessed their likelihood of meeting the parallel trends assumption based on their pre-intervention data, let us review how the full time series looks for this group of services.
+Now we have matched `r params$intervention_long_name` with 6 other Talking Therapy services and assessed their likelihood of meeting the parallel trends assumption based on their pre-intervention data, let us review how the full time series looks for this group of services.
 
 #### Outcome 1
 
@@ -1976,17 +1924,18 @@ Now we have matched `r params$intervention_long_name` with 5 other Talking Thera
 #| label: cem - spaghetti plot1 outcome 1
 #| fig-height: 6
 #| cache: true
-#| eval: false
+#| eval: true
+#| warning: false
 
 # get a df with the details for our matched services
 df_analysis <-
   df |>
   dplyr::filter(
-    # limit to activity between Jul 2022 and Jul 2025
+    # limit to activity between Jan 2022 and Sep 2025
     dplyr::between(
       calc_month,
-      zoo::as.yearmon("Jul 2022"),
-      zoo::as.yearmon("Aug 2025")
+      zoo::as.yearmon("Jan 2022"),
+      zoo::as.yearmon("Sep 2025")
     ),
     # limit to our matched services with parallel trends
     ods_code %in% c(params$ods_intervention, matches_parallel_ods)
@@ -2025,7 +1974,7 @@ p
 
 -   There are three time series displayed, one for `r params$intervention_long_name`, shown in orange, and one for each of the two of our matched services, shown in grey.
 
--   Each series is identified by its ODS code at the end of the data in May 2025.
+-   Each series is identified by its ODS code at the end of the data in Sep 2025.
 
 -   The dotted line represents the start of `r params$intervention_long_name`'s interventions in `r params$zoo_intervention_month`.
 
@@ -2048,9 +1997,9 @@ identify_anomalies(
 
 The control services appear to be a good visual match for `r params$intervention_long_name` in the pre- and post-intervention periods. However, three observations were identified as anomalous:
 
--   `r params$intervention_short_name` had a larger-than-usual dip in June 2024 to 57%,
+-   `r params$intervention_short_name` had a larger-than-usual dip in Oct 2023 to 56%,
 
--   RQX dipped to 60% in January 2025
+-   RTF61 increased to 100% in May 2024
 
 #### Outcome 2
 
@@ -2058,7 +2007,7 @@ The control services appear to be a good visual match for `r params$intervention
 #| label: cem - spaghetti plot1 outcome 2
 #| fig-height: 6
 #| cache: true
-#| eval: false
+#| eval: true
 
 # show a spaghetti plot for outcome 2
 p <-
@@ -2094,9 +2043,9 @@ identify_anomalies(
 
 The control services appear to be a good visual match for `r params$intervention_long_name` in the pre- and post-intervention periods. However, one observation was identified as anomalous:
 
--   RQX performance dropped to 27% in January 2025.
+-   T6G0K performance increased to 75% in January 2025.
 
--   `r params$ods_intervention` dropped to 23% in May 2024.
+-   `r params$ods_intervention` dropped to 25% in September 2023.
 
 ##### Both outcome excluding outliers
 
@@ -2111,9 +2060,11 @@ Here are the two outcomes excluding the anomalous months:
 df_analysis2 <-
   df_analysis |>
   dplyr::filter(
-    !(ods_code == "RQX" & calc_month %in% zoo::as.yearmon(c("Jan 2025"))),
-    !(ods_code == "RWK53" &
-      calc_month %in% zoo::as.yearmon(c("May 2024", "Jun 2024")))
+    !(ods_code == "RJ8" & calc_month %in% zoo::as.yearmon(c("Oct 2023","Sep 2023"))),
+    !(ods_code == "T6G0K" &
+      calc_month %in% zoo::as.yearmon(c("Dec 2024"))),
+    !(ods_code == "RTF61" &
+      calc_month %in% zoo::as.yearmon(c("May 2024")))
   )
 
 # show as a spaghette plot
@@ -2147,7 +2098,7 @@ The results of the DiD analyses are presented below:
 ```{r}
 #| label: cem - did table
 #| cache: true
-#| eval: false
+#| eval: true
 
 # conduct did analysis on the two matched services
 did <-
@@ -2178,11 +2129,11 @@ did_meta <-
 did |> display_manual_did_results_as_gt()
 ```
 
-This table summarises the Difference-in-Differences analysis for `r params$intervention_long_name`'s interventions using the 5 controls identified using the Coarsened Exact Matching process and which exhibited parallel trends.
+This table summarises the Difference-in-Differences analysis for `r params$intervention_long_name`'s interventions using the 3 controls identified using the Coarsened Exact Matching process and which exhibited parallel trends.
 
-For outcome 1, `r params$intervention_long_name`'s observed rate is about **0.8% lower** than what the matched controls would predict, with a 95% confidence interval (-3.4% to 1.9%) that includes zero, indicating **no statistically reliable difference**.
+For outcome 1, `r params$intervention_long_name`'s observed rate is about **4.26% lower** than what the matched controls would predict, with a 95% confidence interval (-0.49% to 9.02%) that includes zero, indicating **no statistically reliable difference**.
 
-For outcome 2, `r params$intervention_long_name`'s rate is about **4.6% higher** than expected, with a 95% confidence interval (2.0% to 7.2%) indicating **a statistically significant difference**.
+For outcome 2, `r params$intervention_long_name`'s rate is about **5.04% higher** than expected, with a 95% confidence interval (2.41% to 7.68%) indicating **a statistically significant difference**.
 
 ::: callout-tip
 ## Interpretation
@@ -2190,7 +2141,7 @@ For outcome 2, `r params$intervention_long_name`'s rate is about **4.6% higher**
 ```{r}
 #| label: interpretation help cem
 #| cache: true
-#| eval: false
+#| eval: true
 
 # work out the total discharges in 12 months preceeding
 total_discharges <-
@@ -2209,22 +2160,22 @@ total_discharges <-
   dplyr::pull(total)
 
 # work out the expected number of people to benefit from the uplift
-people_benefit_o1 <- floor(total_discharges * (-0.77 / 100))
-people_benefit_o2 <- floor(total_discharges * (4.56 / 100))
+people_benefit_o1 <- floor(total_discharges * (4.26 / 100))
+people_benefit_o2 <- floor(total_discharges * (5.04 / 100))
 ```
 
 These figures clearly present `r params$intervention_long_name`'s post-intervention performance exceeding the counterfactual based on the matched services for outcome 2, which is statistically significant. This finding suggests the interventions had a positive causal impact on the proportion of people discharged with reliable recovery.
 
-Assuming the 4.6% gain is real, it translates to an additional <r people_benefit_o2> people achieving reliable recovery per year (based on `r params$intervention_long_name`'s annual discharge volume of \<r scales::comma(total_discharges)\> from June 2024 to May 2025).
+Assuming the 4.6% gain is real, it translates to an additional `r people_benefit_o2` people achieving reliable recovery per year (based on `r params$intervention_long_name`'s annual discharge volume of `r scales::comma(total_discharges)` from June 2024 to May 2025).
 :::
 
 ### Sensitivity analysis
 
 Two important decisions were made that led to the above analytical findings:
 
-1.  **Parallel trend selection** - We inspected the 12 matched controls series visually and excluded two that did not follow `r params$intervention_long_name`'s pre-intervention trend.
+1.  **Parallel trend selection** - We inspected the 6 matched controls series visually and excluded two that did not follow `r params$intervention_long_name`'s pre-intervention trend.
 
-2.  **Anomalous month removal** - For the remaining matched services we omitted several months for two services with extreme values, which yielded more stable performance across outcomes.
+2.  **Anomalous month removal** - For the remaining matched services we omitted a month for two services with extreme values, which yielded more stable performance across outcomes.
 
 Below we reassess the findings after relaxing each of these decisions to determine whether the original conclusions hold or are sensitive to this analytical choice.
 
@@ -2235,6 +2186,7 @@ What impact does keeping the extreme values in the time series have?
 ```{r}
 #| label: cem - sensitivity - anomalous months
 #| cache: true
+#| eval: true
 
 # conduct did analysis using the original data before anomalous months excluded
 did <-
@@ -2270,7 +2222,7 @@ did |> display_manual_did_results_as_gt()
 
 This sensitivity analysis confirms the robustness of the main findings:
 
--   Outcome 1 continues to show no significant effect, and the estimate becomes even closer to zero.
+-   Outcome 1 changes to show significant effect, and the estimate becomes positive.
 
 -   Outcome 2 remains significantly and positively affected by the intervention, even when anomalous months are included.
 
@@ -2281,17 +2233,17 @@ What impact does using all 6 matched control services have on the findings?
 ```{r}
 #| label: cem - sensitivity - all controls
 #| cache: true
-#| eval: false
+#| eval: true
 
 # get a df with the details for our matched services
 df_analysis3 <-
   df |>
   dplyr::filter(
-    # limit to activity between Jan 2022 and Aug 2025
+    # limit to activity between Jan 2022 and Sep 2025
     dplyr::between(
       calc_month,
-      zoo::as.yearmon("Jul 2022"),
-      zoo::as.yearmon("Aug 2025")
+      zoo::as.yearmon("Jan 2022"),
+      zoo::as.yearmon("Sep 2025")
     ),
     # limit to our matched services
     ods_code %in% c(params$ods_intervention, controls$cem_all)
@@ -2342,7 +2294,7 @@ did_meta <-
 did |> display_manual_did_results_as_gt()
 ```
 
-This sensitivity analysis confirms the robustness of the main findings:
+These sensitivity tests add new insight to the main findings.
 
 -   Outcome 1 continues to show no significant effect, and the estimate moves becomes more negative
 
@@ -2390,9 +2342,9 @@ did_overall |>
   ))
 ```
 
-These sensitivity tests **reinforce** the main findings.
+These sensitivity tests **add new insight** to the main findings.
 
--   **Outcome 1** Across all models, the DiD estimates for Outcome 1 are negative but small, and none are statistically significant.
+-   **Outcome 1** The two models (CEM and keeping anomalous months) show no statistically significant effect but using all CEM controls model is statistically significant.  
 
 -   **Outcome 2** All three models show a positive and statistically significant effect.
 
@@ -2414,7 +2366,7 @@ In this approach we will build a 'donor pool' of all Talking Therapy services to
 
 -   As with the earlier section, we first exclude any service that has its own adherence-improvement intervention
 
--   The {synthdid} package requires a balanced panel; every service in the donor pool must have data for every month from July 2022 through May 2025.
+-   The {synthdid} package requires a balanced panel; every service in the donor pool must have data for every month from Jan 2022 through Sep 2025.
 
 -   Consequently, any service with even a single missing month is dropped from the donor pool.
 
@@ -2425,11 +2377,11 @@ In this approach we will build a 'donor pool' of all Talking Therapy services to
 #| fig-height: 8
 #| warning: false
 #| cache: true
-#| eval: false
+#| eval: true
 
 # set up for the did analysis
 set.seed(12345)
-.yearmon_period = zoo::as.yearmon(c("Jul 2022", "Aug 2025"))
+.yearmon_period = zoo::as.yearmon(c("Jan 2022", "Sep 2025"))
 .yearmon_intervention = params$zoo_intervention_month
 
 # get a dataset that is ready for synthetic DiD
@@ -2510,7 +2462,7 @@ did$did_plot
 
 -   Orange line - `r params$intervention_long_name`'s observed post-intervention trend.
 
-`r params$intervention_long_name`'s orange line rises more sharply than the dotted counterfactual, indicating a positive impact of the interventions. The estimated gain is 1.1% above the expected value. The 95% confidence interval spans -12% to + 15%, meaning the true effect could be negative or positive. Consequently, the result is not statistically significant.
+`r params$intervention_long_name`'s orange line rises more sharply than the dotted counterfactual, indicating a positive impact of the interventions. The estimated gain is 3.3% above the expected value. The 95% confidence interval spans -4.7% to + 11.3%, meaning the true effect could be negative or positive. Consequently, the result is not statistically significant.
 
 #### Contribution plot
 
@@ -2519,7 +2471,7 @@ did$did_plot
 #| fig-height: 5
 #| warning: false
 #| cache: true
-#| eval: false
+#| eval: true
 
 set.seed(12345)
 
@@ -2538,7 +2490,7 @@ This plot shows:
 
 -   The grey horizontal lines represent the end points of a 95% confidence interval
 
-A total of \<r length(summary(did$did_estimate)$controls)\> Talking Therapy services were used in the construction of this synthetic control.
+A total of `r length(summary(did$did_estimate)$controls)` Talking Therapy services were used in the construction of this synthetic control.
 
 ### Outcome 2
 
@@ -2547,7 +2499,7 @@ A total of \<r length(summary(did$did_estimate)$controls)\> Talking Therapy serv
 #| fig-height: 8
 #| warning: false
 #| cache: true
-#| eval: false
+#| eval: true
 
 # set seed for reproducibility
 set.seed(12345)
@@ -2608,7 +2560,7 @@ did$did_plot
 
 -   Orange line - `r params$intervention_long_name`'s observed post-intervention trend.
 
-`r params$intervention_long_name`'s orange line rises much more sharply than the dotted counterfactual, indicating an effect in the post-intervention period. The estimated difference is 6.1% above the expected value. The 95% confidence interval spans -1.2% to +13.5%, meaning the true effect could be negative or positive. Consequently, the result is **not statistically significant**.
+`r params$intervention_long_name`'s orange line rises much more sharply than the dotted counterfactual, indicating an effect in the post-intervention period. The estimated difference is 4.9% above the expected value. The 95% confidence interval spans -1.9% to +11.6%, meaning the true effect could be negative or positive. Consequently, the result is **not statistically significant**.
 
 #### Contribution plot
 
@@ -2617,7 +2569,7 @@ did$did_plot
 #| fig-height: 5
 #| warning: false
 #| cache: true
-#| eval: false
+#| eval: true
 
 set.seed(12345)
 
@@ -2628,7 +2580,7 @@ synthdid::synthdid_units_plot(
   ggplot2::theme(axis.text.x = ggplot2::element_text(size = 5))
 ```
 
-A total of \<r length(summary(did$did_estimate)$controls)\> Talking Therapy services were used in the construction of this synthetic control.
+A total of `r length(summary(did$did_estimate)$controls)` Talking Therapy services were used in the construction of this synthetic control.
 
 ### Summary
 
@@ -2666,13 +2618,13 @@ total_discharges <-
   dplyr::pull(total)
 
 # work out the expected number of people to benefit from the uplift
-people_benefit_o1 <- floor(total_discharges * (1.1 / 100))
-people_benefit_o2 <- floor(total_discharges * (6.1 / 100))
+people_benefit_o1 <- floor(total_discharges * (3.3 / 100))
+people_benefit_o2 <- floor(total_discharges * (4.9 / 100))
 ```
 
 The charts indicate `r params$intervention_long_name`'s post-intervention performance exceeding the synthetic counterfactual, but the wide confidence interval prevents a definitive claim of effectiveness for both outcomes.
 
-Assuming the 6.1% gain for Outcome 2 is real, it translates to an additional <r people_benefit_o2> people achieving reliable per year (based on `r params$intervention_long_name`'s annual discharge volume of \<r scales::comma(total_discharges)\> from June 2024 to May 2025).
+Assuming the 4.9% gain for Outcome 2 is real, it translates to an additional `r people_benefit_o2` people achieving reliable per year (based on `r params$intervention_long_name`'s annual discharge volume of `r scales::comma(total_discharges)` from June 2024 to May 2025).
 :::
 
 ### Sensitivity analysis
@@ -2691,8 +2643,8 @@ What impact does using the matches returned from the propensity score matching (
 #| label: synthdid - sensitivity PSM - outcome 1
 #| fig-height: 7
 #| warning: false
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 set.seed(12345)
 
@@ -2746,14 +2698,14 @@ did_meta <-
 did$did_plot
 ```
 
-`r params$intervention_long_name` performed 0.3% below the synthetic control expectation, however, the 95% confidence interval (-1.1% to 0.5%) includes zero so we cannot make any definitive claim.
+`r params$intervention_long_name` performed 5.7% below the synthetic control expectation, however, the 95% confidence interval (-4.4% to 15.9%) includes zero so we cannot make any definitive claim.
 
 ```{r}
 #| label: synthdid - sensitivity PSM - outcome 2
 #| fig-height: 7
 #| warning: false
 #| cache: true
-#| eval: false
+#| eval: true
 
 set.seed(12345)
 
@@ -2807,7 +2759,7 @@ did_meta <-
 did$did_plot
 ```
 
-`r params$intervention_long_name` performed 2% above the synthetic control expectation, and crucially, the 95% confidence interval (\>0% to 3.9%) narrowly does not include zero, which means this means this finding is **statistically significant**.
+`r params$intervention_long_name` performed 6.2% above the synthetic control expectation, and crucially, the 95% confidence interval (-0.7% to 13%) narrowly does not include zero, which means this means this finding is **not statistically significant**.
 
 #### Using matches from CEM
 
@@ -2818,7 +2770,7 @@ What impact does using the matches returned from the coarsened exact matching (C
 #| fig-height: 7
 #| warning: false
 #| cache: true
-#| eval: false
+#| eval: true
 
 set.seed(12345)
 
@@ -2872,14 +2824,14 @@ did_meta <-
 did$did_plot
 ```
 
-`r params$intervention_long_name`'s observed outcome was **1% lower** than the synthetic control expectation. Additionally, because the 95% confidence interval (-2% to 0.1%) does not include zero, the result is **statistically significant**.
+`r params$intervention_long_name`'s observed outcome was **3.6% higher** than the synthetic control expectation. Additionally, because the 95% confidence interval (3.5% to 3.8%) does not include zero, the result is **statistically significant**.
 
 ```{r}
 #| label: synthdid - sensitivity CEM - outcome 2
 #| fig-height: 7
 #| warning: false
 #| cache: true
-#| eval: false
+#| eval: true
 
 set.seed(12345)
 
@@ -2932,14 +2884,15 @@ did_meta <-
 did$did_plot
 ```
 
-`r params$intervention_long_name`'s observed outcome was **5.3% higher** than the synthetic control expectation. However, the 95% confidence interval (-3% to 13.5%) includes zero, so the result is not statistically distinguishable from no effect.
+`r params$intervention_long_name`'s observed outcome was **5.9% higher** than the synthetic control expectation. However, the 95% confidence interval (5% to 6.8%) not includes zero, so the result is  statistically significant effect.
 
 #### Summary
+
 
 ```{r}
 #| label: synthdid - sensitivity - summary table
 #| cache: true
-#| eval: false
+#| eval: true
 
 did_overall |>
   display_did_summary_in_gt(sensitivity_summary = TRUE)
@@ -2951,18 +2904,19 @@ saveRDS(
 )
 ```
 
-The main model's estimates are not statistically significant, but the alternatives reveal significant effects for at least one outcome each.
+-- change the summary when craig finish fixing the error
+The main model's estimates are not statistically significant, but the alternative CEM model reveal significant effects for the two outcome.
 
-Both alternatives produce narrower confidence intervals, suggesting better model precision.
+the alternative CEM model produces narrower confidence intervals, suggesting better model precision.
 
-The sensitivity analysis suggest that the main model may be underpowered or imprecise. The choice of matching method materially affects the interpretation of treatment effects, especially for Outcome 1.
+The sensitivity analysis suggest that the main model may be underpowered or imprecise. The choice of matching method materially affects the interpretation of treatment effects for Outcome 1 and Outcome 2 .
 
 ## Supplementary analysis
 
 ```{r}
 #| label: supp - gather data
 #| cache: true
-#| eval: false
+#| eval: true
 supp1 <-
   delegate_supp_outcome_analysis(
     supp = "mutual_discharge",
@@ -2970,7 +2924,7 @@ supp1 <-
     str_intervention = params$intervention_short_name,
     ods_controls = c("RAT"),
     zoo_intervention = params$zoo_intervention_month,
-    zoo_period = zoo::as.yearmon(c("Jan 2022", "May 2025")),
+    zoo_period = zoo::as.yearmon(c("Jan 2022", "Sep 2025")),
     str_plot_subtitle = "No significant changes for either treatment intensity group"
   )
 
@@ -2981,7 +2935,7 @@ supp2 <-
     str_intervention = params$intervention_short_name,
     ods_controls = c("RAT"),
     zoo_intervention = params$zoo_intervention_month,
-    zoo_period = zoo::as.yearmon(c("Jan 2022", "May 2025")),
+    zoo_period = zoo::as.yearmon(c("Jan 2022", "Sep 2025")),
     str_plot_subtitle = "No significant changes for either treatment intensity group"
   )
 ```
