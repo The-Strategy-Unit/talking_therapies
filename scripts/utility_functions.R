@@ -2577,3 +2577,201 @@ interpolate_missing_month_outcomes_for_intervention_service <- function(
   # return the results
   return(df_return)
 }
+
+conduct_meta_analysis <- function(
+  .df,
+  .subgroup = FALSE,
+  .outcome = c("Outcome 1", "Outcome 2"),
+  .matching = c("psm", "cem", "synthdid"),
+  .model_main = TRUE
+) {
+  # ensure a valid value was given
+  match.arg(.outcome)
+  match.arg(.matching)
+
+  # filter the data
+  df_test <-
+    .df |>
+    dplyr::filter(
+      outcome == .outcome,
+      matching == .matching,
+      model_main == TRUE
+    )
+
+  # decide whether to conduct a full or subgroup analysis
+  if (.subgroup == FALSE) {
+    # no subgroup analysis --
+
+    # get the meta analysis
+    meta_analysis <-
+      meta::metagen(
+        data = df_test,
+        TE = estimate, # point-estimate for the treatment effect
+        seTE = se, # standard error for the treatment effect
+        studlab = name_full, # use the full name for the project
+        common = FALSE, # don't use the common (non-random) meta analysis
+        random = TRUE, # use a random-effects model
+        prediction = TRUE, # include a prediction interval for future studies
+        method.random.ci = "HK", # recommended for most cases
+      )
+
+    # summarise in a description
+    meta_description <- get_meta_description_pooled_effect(
+      meta_analysis = meta_analysis,
+      .outcome = .outcome,
+      .matching = .matching
+    )
+  } else {
+    # subgroup analysis --
+
+    # get the meta analysis
+    meta_analysis <-
+      meta::metagen(
+        data = df_test,
+        TE = estimate, # point-estimate for the treatment effect
+        seTE = se, # standard error for the treatment effect
+        studlab = name_full, # use the full name for the project
+        common = FALSE, # don't use the common (non-random) meta analysis
+        random = TRUE, # use a random-effects model
+        prediction = TRUE, # include a prediction interval for future studies
+        method.random.ci = "HK", # recommended for most cases
+        subgroup = category
+      )
+
+    # summarise in a description
+    meta_description <- "To do"
+  }
+
+  # return a list of result objects
+  return(list("analysis" = meta_analysis, "description" = meta_description))
+}
+
+#' Get a description of the meta analysis results - pooled results
+#'
+#' @description
+#' Returns a markdown-formatted block of text that describes the key features of a pooled meta analysis.
+#'
+#' @param meta_analysis an object produced by the {meta} package
+#' @param .outcome Character - the outcome variable name
+#' @param .matching Character - the matching variable name
+#'
+#' @returns Character
+get_meta_description_pooled_effect <- function(
+  meta_analysis,
+  .outcome,
+  .matching
+) {
+  # prepare some formatted figures
+  outcome_desc <- dplyr::case_match(
+    .outcome,
+    "Outcome 1" ~ "Outcome 1: proportion of patients attending five or more treatment sessions",
+    "Outcome 2" ~ "Outcome 2: proportion of patients achieving reliable recovery"
+  )
+  study_count <- meta_analysis$k.study
+  matching_desc <- dplyr::case_match(
+    .matching,
+    "psm" ~ "Propensity Score Matching (PSM)",
+    "cem" ~ "Coarsened Exact Matching (CEM)",
+    "synthdid" ~ "Synthetic control"
+  )
+  pooled_effect_size <- scales::percent(meta_analysis$TE.random, accuracy = 0.1)
+  ci_lower <- scales::percent(meta_analysis$lower.random, accuracy = 0.1)
+  ci_upper <- scales::percent(meta_analysis$upper.random, accuracy = 0.1)
+  pred_lower <- scales::percent(meta_analysis$lower.predict, accuracy = 0.1)
+  pred_upper <- scales::percent(meta_analysis$upper.predict, accuracy = 0.1)
+  between_study_het <- dplyr::case_when(
+    meta_analysis$I2 >= 0 & meta_analysis$I2 <= 25 / 100 ~ "low",
+    meta_analysis$I2 > 25 / 100 & meta_analysis$I2 <= 50 / 100 ~ "moderate",
+    meta_analysis$I2 > 50 / 100 & meta_analysis$I2 <= 75 / 100 ~ "substantial",
+    .default = "considerable"
+  )
+  i <- meta_analysis$I2 |> scales::percent(accuracy = 0.1)
+  tau2 <- meta_analysis$tau2 |> prettyunits::pretty_round(digits = 4)
+  q <- meta_analysis$Q |> prettyunits::pretty_round(digits = 3)
+  p <- meta_analysis$pval.Q |> prettyunits::pretty_p_value()
+  interpretation_adj <- prop_to_text(p = meta_analysis$I2)
+  interpretation <- glue::glue(
+    "approximately {interpretation_adj} of the variability in observed effects was due to real differences between projects rather than chance"
+  )
+  impact_desc <- if (meta_analysis$pval.random <= 0.05) {
+    # this is a significant effect
+    if (meta_analysis$TE.random > 0) {
+      "positive"
+    } else {
+      "negative"
+    }
+  } else {
+    # this is not significant
+    "non-significant"
+  }
+  heterogeneity_summary <- dplyr::if_else(
+    condition = meta_analysis$I2 <= 0.25,
+    true = "little heterogeneity indicating that this is a measure of a common treatment effect",
+    false = "heterogeneity indicating that project-specific factors influenced effectiveness"
+  )
+
+  # get the formatted text
+  meta_description <-
+    glue::glue(
+      "A random effects meta-analysis was conducted on <b>{study_count}</b> sets of results to estimate the overall effect of the intervention on <b>{outcome_desc}</b> using a control produced by <b>{matching_desc}</b> process. The pooled effect size was <b>{pooled_effect_size}</b> change per year compared with the counterfactual (95% CI: <b>{ci_lower}</b> to <b>{ci_upper}</b>). The prediction interval ranged from <b>{pred_lower}</b> to <b>{pred_upper}</b>, indicating the expected range of effects in future implementations.
+      
+      Between-study heterogeneity was <b>{between_study_het}</b>, with τ^2^ = <b>{tau2}</b>, Q = <b>{q}</b>, p = <b>{p}</b> and I^2^ = <b>{i}</b>. These statistics suggest that <b>{interpretation}</b>.
+      
+      The figure, below, presents the forest plot of individual study estimates alongside the pooled effect.
+
+      Overall, the meta-analysis suggests that the intervention had a <b>{impact_desc}</b> impact on <b>{.outcome}</b>, with <b>{heterogeneity_summary}</b>.
+      "
+    )
+
+  return(meta_description)
+}
+
+#' Display a forest plot
+#'
+#' @description
+#' Displays a forest plot in a standardised way
+#'
+#' @param meta {meta} object
+#'
+#' @returns Nothing
+display_forest_plot <- function(meta) {
+  meta |>
+    meta::forest(
+      layout = "JAMA",
+      sortvar = TE
+    )
+}
+
+#' Convert a numeric proportion to an english 'common fraction'.
+#'
+#' @description
+#' Converts a numeric decimal value to a common fraction for use in sentences.
+#'
+#' @details
+#' "Common fractions" are often used adjectively to describe proportions. This function converts a given proportion to an approximate description. For example, supplying 0.5 would return the common fraction 'half'. This is useful in string interpolation to automate a description of a proportion.
+#'
+#' @param p Decimal numeric, e.g. 0.5
+#'
+#' @returns Character description of the proportion as an english common fraction
+prop_to_text <- function(p) {
+  text <-
+    dplyr::case_when(
+      p < 0.01 ~ "none",
+      p < 0.08 ~ "very little",
+      p < 0.17 ~ "a tenth",
+      p < 0.23 ~ "a fifth",
+      p < 0.30 ~ "a quarter",
+      p < 0.37 ~ "a third",
+      p < 0.46 ~ "two-fifths",
+      p < 0.56 ~ "half",
+      p < 0.64 ~ "three-fifths",
+      p < 0.71 ~ "two-thirds",
+      p < 0.78 ~ "three-quarters",
+      p < 0.86 ~ "four-fifths",
+      p < 0.93 ~ "nine-tenths",
+      p < 0.99 ~ "nearly all",
+      .default = "all"
+    )
+
+  return(text)
+}
