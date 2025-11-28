@@ -1515,7 +1515,7 @@ p <-
     str_outcome = "o1_rate",
     ods_intervention = params$ods_intervention,
     str_title = "Outcome 1: discharges with 5+ treatment contacts",
-    str_subtitle = "",
+    str_subtitle = "RX4K3 displays abnormal results in April 2025",
     zoo_intervention = params$zoo_intervention_month,
     bool_intervention = TRUE,
     .yearmon_scale_to = zoo::as.yearmon("Nov 2025")
@@ -1536,8 +1536,8 @@ p
 
 ```{r}
 #| label: psm - anomalous months outcome 1
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # return any anomalous observations
 identify_anomalies(
@@ -1551,21 +1551,15 @@ identify_anomalies(
 
 **Key observations**
 
-Our intervention service, RW1, exhibited abnormal dips:
-
--   September 2024 - 0%
-
--   September 2025 - 0%
-
-These brief, but steep declines would bias the post-implementation estimates downward for the intervention service. To avoid this bias, the low-performance points should be excluded from the dataset.
+One control service, RX4K3, exhibited abnormal peak to 100% in April 2025. This brief, but steep, increase would bias the post-implementation estimates upward for the control services. To avoid this bias, the high-performance point should be excluded from the dataset.
 
 #### Outcome 2
 
 ```{r}
 #| label: psm - spaghetti plot1 outcome 2
 #| fig-height: 6
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # show a spaghetti plot for these services
 p <-
@@ -1574,7 +1568,7 @@ p <-
     str_outcome = "o2_rate",
     ods_intervention = params$ods_intervention,
     str_title = "Outcome 2: discharges achieving reliable recovery",
-    str_subtitle = "RW1 displays abnormal results in September 2025",
+    str_subtitle = "RX4K3 displays abnormal results in April 2025",
     zoo_intervention = params$zoo_intervention_month,
     bool_intervention = TRUE,
     .yearmon_scale_to = zoo::as.yearmon("Nov 2025")
@@ -1585,8 +1579,8 @@ p
 
 ```{r}
 #| label: psm - anomalous months outcome 2
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # return any anomalous observations
 identify_anomalies(
@@ -1600,22 +1594,21 @@ identify_anomalies(
 
 **Key observations**
 
-Our intervention service, RW1, exhibited an abnormal dip to 0% in September 2025.
+One control service, RX4K3, exhibited abnormal peak to 100% in April 2025. This brief, but steep, increase would bias the post-implementation estimates upward for the control services. To avoid this bias, the high-performance point should be excluded from the dataset.
 
 #### Both outcomes excluding outliers
 
 ```{r}
 #| label: psm - spaghetti plot2 outcomes 1 and 2
 #| fig-height: 6
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
 
 # get a df excluding the problematic months for the controls
 df_analysis2 <-
   df_analysis |>
   dplyr::filter(
-    !(ods_code == "RW1" &
-      calc_month %in% zoo::as.yearmon(c("Sep 2024", "Sep 2025")))
+    !(ods_code == "RX4K3" & calc_month %in% zoo::as.yearmon(c("Apr 2025")))
   )
 
 # show as a spaghetti plot
