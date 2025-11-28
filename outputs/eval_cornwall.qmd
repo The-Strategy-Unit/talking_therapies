@@ -112,7 +112,47 @@ ls_labels <- get_variable_labels()
 
 # Executive summary
 
-\< To be completed at the end \>
+While there are signals of benefit, especially for reliable recovery, the evidence is not strong or consistent enough to confirm effectiveness. A more rigorous evaluation design is needed to determine the true impact of these interventions.
+
+**Outcomes measured**
+
+ - Outcome 1: proportion of patients attending five or more treatment sessions.
+
+ - Outcome 2: proportion of patients achieving reliable recovery
+
+**Analytical methods**
+
+ - Manual difference-in-differences (DiD) using matched services via Propensity Score Matching (PSM) and Coarsened Exact Matching (CEM)
+
+ - Synthetic DiD using weighted synthetic controls
+
+ - Sensitivity analyses tested robustness by varying control groups and intervention start dates
+
+**Key findings**
+
+- No statistically significant improvements were found for either outcome across models.
+
+- Outcome 2 showed positive effects in some models, but results were highly sensitive to analytical choices.
+
+- Outcome 1 showed a mixture of slightly positive trends, but none reached statistical significance.
+
+**Limitations**
+
+ - Only one treated unit, leading to wide confidence intervals.
+
+ - Possible hidden interventions in control services.
+
+ - Staggered rollout of interventions complicates analysis.
+
+ - Synthetic control models are sensitive to outliers and tend to be more conservative in estimating standard error - which led to wider confidence intervals.
+
+**Recommendations**
+
+ - Conduct a randomised controlled trial (RCT) using matched services.
+
+ - Randomly assign services to intervention or control groups.
+
+ - Use pre-registered DiD or mixed-effects models with robustness checks.
 
 ```{r}
 #| label: List of interventions
@@ -2904,12 +2944,14 @@ saveRDS(
 )
 ```
 
--- change the summary when craig finish fixing the error
+
 The main model's estimates are not statistically significant, but the alternative CEM model reveal significant effects for the two outcome.
 
 the alternative CEM model produces narrower confidence intervals, suggesting better model precision.
 
 The sensitivity analysis suggest that the main model may be underpowered or imprecise. The choice of matching method materially affects the interpretation of treatment effects for Outcome 1 and Outcome 2 .
+
+There is a moderate evidence of statistically significant positive effect  on Outcome 1 and Outcome 2.Thus, The choice of matching method and variation may affect the result of both outcomes.  
 
 ## Supplementary analysis
 
@@ -2917,6 +2959,8 @@ The sensitivity analysis suggest that the main model may be underpowered or impr
 #| label: supp - gather data
 #| cache: true
 #| eval: true
+#| warning: false
+
 supp1 <-
   delegate_supp_outcome_analysis(
     supp = "mutual_discharge",
@@ -2959,7 +3003,8 @@ On discharge from a Talking Therapy service, every client record must include a 
 ```{r}
 #| label: supp - discharge codes
 #| cache: true
-#| eval: false
+#| eval: true
+#| warning: false
 
 readxl::read_xlsx(
   path = here::here("data", "reference", "iapt_tos_endcode.xlsx")
@@ -2998,14 +3043,15 @@ Where data permits, we also examine referrals coded as **ended before the therap
 
 The bar chart below displays `r params$intervention_long_name`'s data only. Due to insufficient data, referrals that ended earlier than the patient desired have been grouped under 'Other codes'.
 
-The chart highlights an **11.3 percentage point increase in mutually agreed discharges** among individuals who received five or more treatment contacts in the post-intervention period, compared to the pre-intervention period. This shift was accompanied by a 2.9 percentage point decrease in dishcarges initiated earlier than the care professional intended, and an 8.5 percentage point reduction in discharges grouped under 'Other codes'.
+The chart highlights a **0.8 percentage point decrease in mutually agreed discharges** among individuals who received five or more treatment contacts in the post-intervention period, compared to the pre-intervention period. This shift was accompanied by a 4.2 percentage point increase in dishcarges initiated earlier than the care professional intended, and an 4.1 percentage point reduction in discharges grouped under 'Other codes'.
 
 ```{r}
 #| label: supp - mutual - plot
-#| cache: false
+#| cache: true
 #| fig-height: 7
 #| fig-width: 12
-#| eval: false
+#| eval: true
+#| warning: false
 
 # display a bar chart
 supp1$bar_plot
@@ -3031,7 +3077,8 @@ As with the previous analysis, the bar chart shows only `r params$intervention_l
 #| cache: true
 #| fig-height: 4
 #| fig-width: 12
-#| eval: false
+#| eval: true
+#| warning: false
 
 # display a bar chart
 supp2$bar_plot
@@ -3040,15 +3087,15 @@ supp2$bar_plot
 supp2$gt_chi2_results
 ```
 
-The chi-squared test confirms that the observed changes are **statistically significant** for the 5+ treatment contact intensity group.
+The chi-squared test confirms that the observed changes are **statistically significant** across both treatment-intensity groups.
 
-These findings suggest that the interventions had a positive effect on the proportions of patients who achieved reliable recovery for those who received 5+ treatment contacts.
+These findings suggest that the interventions measurable effects on the proportion of referrals completed through mutual agreement between patient and therapist.
 
 # Conclusions
 
 We estimated the impact of `r params$intervention_long_name`'s interventions using two complimentary DiD approaches:
 
--   **Manual DiD** - `r params$intervention_long_name` was compared with 10 services selected through a coarsened exact matched (CEM) procedure
+-   **Manual DiD** - `r params$intervention_long_name` was compared with 6 services selected through a coarsened exact matched (CEM) procedure
 
 -   **Synthetic control DiD** - `r params$intervention_long_name` was contrasted with a synthetic counterfactual build from all available donor services.
 
@@ -3056,21 +3103,21 @@ For the CEM and synthetic approaches we performed a series of sensitivity checks
 
 ## Outcome 1
 
-Across all three methods, the DiD estimates for Outcome 1 are small and statistically insignificant (confidence intervals include zero).
-
-The direction of effect varies slightly; PSM and CEM both suggest a small negative effect, whereas SynthDiD suggests a small positive effect.
+Across all three main methods, the DiD estimates for Outcome 1 are small positive effect and statistically insignificant (confidence intervals include zero)
 
 There is no robust evidence of a treatment effect on Outcome 1, and findings are sensitive to the matching method used.
 
 ## Outcome 2
 
-All three methods show a positive DiD estimate for Outcome 2.
+The two methods (PSM and CEM) show a positive DiD estimate for Outcome 2.
 
-Only the CEM analysis yields a statistically significant result (confidence interval does not include zero), suggesting a 4.56% increase attributable to the intervention.
+the PSM analysis yields a statistically significant result (confidence interval does not include zero), suggesting a 4.87% increase attributable to the intervention.
 
-SynthDiD shows the largest point estimate (6.1%) but lacks precision (wide confidence interval).
+the CEM analysis yields a statistically significant result (confidence interval does not include zero), suggesting a 5.04% increase attributable to the intervention.
 
-There is **moderate evidence of a positive treatment effect on Outcome 2**, particularly when using CEM. This suggests the interventions may have improved the outcome, through results vary by method.
+SynthDiD shows 4.9% point estimate  but lacks precision (wide confidence interval).
+
+There is **moderate evidence of a positive treatment effect on Outcome 2**, particularly when using PSM and CEM. This suggests the interventions may have improved the outcome, through results vary by method.
 
 ## Recommendations for future evaluation
 
