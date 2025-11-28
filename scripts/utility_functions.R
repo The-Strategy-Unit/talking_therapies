@@ -2639,7 +2639,11 @@ conduct_meta_analysis <- function(
       )
 
     # summarise in a description
-    meta_description <- "To do"
+    meta_description <- get_meta_description_subgroup_effect(
+      meta_analysis = meta_analysis,
+      .outcome = .outcome,
+      .matching = .matching
+    )
   }
 
   # return a list of result objects
@@ -2713,13 +2717,126 @@ get_meta_description_pooled_effect <- function(
   # get the formatted text
   meta_description <-
     glue::glue(
-      "A random effects meta-analysis was conducted on <b>{study_count}</b> sets of results to estimate the overall effect of the intervention on <b>{outcome_desc}</b> using a control produced by <b>{matching_desc}</b> process. The pooled effect size was <b>{pooled_effect_size}</b> change per year compared with the counterfactual (95% CI: <b>{ci_lower}</b> to <b>{ci_upper}</b>). The prediction interval ranged from <b>{pred_lower}</b> to <b>{pred_upper}</b>, indicating the expected range of effects in future implementations.
+      "A random effects meta-analysis was conducted on **{study_count}** sets of results to estimate the overall effect of the intervention on **{outcome_desc}** using a control produced by **{matching_desc}** process. The pooled effect size was **{pooled_effect_size}** change per year compared with the counterfactual (95% CI: **{ci_lower}** to **{ci_upper}**). The prediction interval ranged from **{pred_lower}** to **{pred_upper}**, indicating the expected range of effects in future implementations.
       
-      Between-study heterogeneity was <b>{between_study_het}</b>, with τ^2^ = <b>{tau2}</b>, Q = <b>{q}</b>, p = <b>{p}</b> and I^2^ = <b>{i}</b>. These statistics suggest that <b>{interpretation}</b>.
+      Between-study heterogeneity was **{between_study_het}**, with τ^2^ = **{tau2}**, Q = **{q}**, p = **{p}** and I^2^ = **{i}**. These statistics suggest that **{interpretation}**.
       
       The figure, below, presents the forest plot of individual study estimates alongside the pooled effect.
 
-      Overall, the meta-analysis suggests that the intervention had a <b>{impact_desc}</b> impact on <b>{.outcome}</b>, with <b>{heterogeneity_summary}</b>.
+      Overall, the meta-analysis suggests that the intervention had a **{impact_desc}** impact on **{.outcome}**, with **{heterogeneity_summary}**.
+      "
+    )
+
+  return(meta_description)
+}
+
+#' Get a description of the meta analysis results - subgroup analysis
+#'
+#' @description
+#' Returns a markdown-formatted block of text that describes the key features of a subgroup meta analysis.
+#'
+#' @param meta_analysis an object produced by the {meta} package
+#' @param .outcome Character - the outcome variable name
+#' @param .matching Character - the matching variable name
+#'
+#' @returns Character
+get_meta_description_subgroup_effect <- function(
+  meta_analysis,
+  .outcome,
+  .matching
+) {
+  # prepare some formatted figures
+  outcome_desc <- dplyr::case_match(
+    .outcome,
+    "Outcome 1" ~ "Outcome 1: proportion of patients attending five or more treatment sessions",
+    "Outcome 2" ~ "Outcome 2: proportion of patients achieving reliable recovery"
+  )
+  matching_desc <- dplyr::case_match(
+    .matching,
+    "psm" ~ "Propensity Score Matching (PSM)",
+    "cem" ~ "Coarsened Exact Matching (CEM)",
+    "synthdid" ~ "Synthetic control"
+  )
+  pooled_effect_size <- scales::percent(meta_analysis$TE.random, accuracy = 0.1)
+  ci_lower <- scales::percent(meta_analysis$lower.random, accuracy = 0.1)
+  ci_upper <- scales::percent(meta_analysis$upper.random, accuracy = 0.1)
+  pred_lower <- scales::percent(meta_analysis$lower.predict, accuracy = 0.1)
+  pred_upper <- scales::percent(meta_analysis$upper.predict, accuracy = 0.1)
+  between_study_het <- dplyr::case_when(
+    meta_analysis$I2 >= 0 & meta_analysis$I2 <= 25 / 100 ~ "low",
+    meta_analysis$I2 > 25 / 100 & meta_analysis$I2 <= 50 / 100 ~ "moderate",
+    meta_analysis$I2 > 50 / 100 & meta_analysis$I2 <= 75 / 100 ~ "substantial",
+    .default = "considerable"
+  )
+  i <- meta_analysis$I2 |> scales::percent(accuracy = 0.1)
+  tau2 <- meta_analysis$tau2 |> prettyunits::pretty_round(digits = 4)
+  q <- meta_analysis$Q |> prettyunits::pretty_round(digits = 3)
+  p <- meta_analysis$pval.Q |> prettyunits::pretty_p_value()
+  interpretation_adj <- prop_to_text(p = meta_analysis$I2)
+  interpretation <- glue::glue(
+    "approximately {interpretation_adj} of the variability in observed effects was due to real differences between projects rather than chance"
+  )
+  impact_desc <- if (meta_analysis$pval.random <= 0.05) {
+    # this is a significant effect
+    if (meta_analysis$TE.random > 0) {
+      "positive"
+    } else {
+      "negative"
+    }
+  } else {
+    # this is not significant
+    "non-significant"
+  }
+  heterogeneity_summary <- dplyr::if_else(
+    condition = meta_analysis$I2 <= 0.25,
+    true = "little heterogeneity indicating that this is a measure of a common treatment effect",
+    false = "heterogeneity indicating that project-specific factors influenced effectiveness"
+  )
+  sub_1_name <- meta_analysis$subgroup.levels[1]
+  sub_2_name <- meta_analysis$subgroup.levels[2]
+  sub_1_effect_size <- meta_analysis$TE.random.w[1] |>
+    scales::percent(accuracy = 0.1)
+  sub_2_effect_size <- meta_analysis$TE.random.w[2] |>
+    scales::percent(accuracy = 0.1)
+  sub_1_ci_lower <- meta_analysis$lower.random.w[1] |>
+    scales::percent(accuracy = 0.1)
+  sub_2_ci_lower <- meta_analysis$lower.random.w[2] |>
+    scales::percent(accuracy = 0.1)
+  sub_1_ci_upper <- meta_analysis$upper.random.w[1] |>
+    scales::percent(accuracy = 0.1)
+  sub_2_ci_upper <- meta_analysis$upper.random.w[2] |>
+    scales::percent(accuracy = 0.1)
+  sub_1_i2 <- meta_analysis$I2.w[1] |> scales::percent(accuracy = 0.1)
+  sub_2_i2 <- meta_analysis$I2.w[2] |> scales::percent(accuracy = 0.1)
+  subgroup_differences_p <- meta_analysis$pval.Q.b.random
+  subgroup_differences_description <- dplyr::if_else(
+    condition = subgroup_differences_p <= 0.05,
+    true = "significant variation by intervention type",
+    false = "no evidence of differential effects across subgroups"
+  )
+
+  # get the formatted text
+  meta_description <-
+    glue::glue(
+      "A random effects subgroup meta-analysis was conducted to estimate the effect of the intervention on **{outcome_desc}** using a control produced by **{matching_desc}** process. 
+      
+      - **Overall pooled effect:** The combined effect size across all studies was **{pooled_effect_size}** change per year compared with the counterfactual (95% CI: **{ci_lower}** to **{ci_upper}**).
+      
+      - **Prediction interval:** The expected range of effects in future implementations is **{pred_lower}** to **{pred_upper}**.
+
+      **Heterogeneity**
+
+      Between-study heterogeneity was **{between_study_het}**, with τ^2^ = **{tau2}**, Q = **{q}**, p = **{p}**, and I^2^ = **(i)**. These statistics suggest that **{interpretation}**.
+
+      **Subgroup analyses**
+
+      Subgroup analyses were conducted to explore whether intervention effects varied by intervention type.
+
+      - Subgroup 1 **{sub_1_name}:** Pooled effect size = **{sub_1_effect_size}** (95% CI: **{sub_1_ci_lower}** to **{sub_1_ci_upper}**); heterogeneity = **{sub_1_i2}**.
+      
+      - Subgroup 2 **{sub_2_name}:** Pooled effect size = **{sub_2_effect_size}** (95% CI: **{sub_2_ci_lower}** to **{sub_2_ci_upper}**); heterogeneity = **{sub_2_i2}**
+      
+      Tests for subgroup differences indicated **{subgroup_differences_description}**.
       "
     )
 
