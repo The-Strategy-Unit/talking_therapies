@@ -53,6 +53,29 @@ df_meta <-
 # 1. Add in formatted name of the case study (from a lookup)
 # 2. Add in classification based on typology - so we can do subgroup analyses to see whether some types of intervention are more effective.
 
+# load the lookup file
+df_lu <-
+  read_an_open_excel(
+    path = here::here("data", "project", "tt_meta_project_lu.xlsx"),
+    sheet = "lu"
+  )
+
+# add the lookup details to df_meta
+df_meta <-
+  df_meta |>
+  dplyr::left_join(
+    y = df_lu,
+    by = dplyr::join_by("file" == "file")
+  ) |>
+  # fill-in any gaps in name_full with the filename
+  dplyr::mutate(
+    name_full = dplyr::if_else(
+      condition = is.na(name_full),
+      true = file,
+      false = name_full
+    )
+  )
+
 ```
 
 # About
@@ -85,9 +108,25 @@ There are two sources of variation causing observed effects to differ from study
 
 **Cochran's Q**: can be used to check if there is *excess variation* in our data, i.e. more than can be explained from sampling error alone - this is assumed to be the result of between-study heterogeneity.
 
+*What it does:* tests whether observed differences across studies are greater than expected by chance.
+
+*Interpretation:* p-value less than 0.05 suggests heterogeneity
+
 See [Cochran's Q](https://doing-meta.guide/heterogeneity.html?q=tau#cochran-q) for more details.
 
 **Higgins and Thompson's I^2^**: another way to quantify between-study heterogeneity (based on Cochran's Q). Defined as the percentage of variability in the effect sizes that is not caused by sampling error.
+
+*What it does:* quantifies the percentage of total variation across studies due to heterogeneity rather than chance.
+
+*Interpretation:* (rough benchmarks)
+
+0-25% = low heterogeneity
+
+25-50% = moderate heterogeneity
+
+50-75% = substantial heterogeneity
+
+75%+ = considerable heterogeneity
 
 See [Higgins & Thompson's I^2^](https://doing-meta.guide/heterogeneity.html#i-squared) for more details.
 
@@ -96,6 +135,10 @@ See [Higgins & Thompson's I^2^](https://doing-meta.guide/heterogeneity.html#i-sq
 See [H^2^ statistic](https://doing-meta.guide/heterogeneity.html#the-h2-statistic) for more details.
 
 **Tau-squared (τ^2^)**: quantifies the variance of the true effect sizes underlying our data. The square root of this (τ) is the standard deviation of the true effect sizes.
+
+*What it does:* estimates the between-study variance in random-effects models.
+
+*Interpretation:* Larger τ^2^ means more variability in true effect sizes.
 
 See [Heterogeneity variance](https://doing-meta.guide/heterogeneity.html?q=tau#tau) for more details.
 
@@ -108,7 +151,6 @@ In general, it is advisable to use multiple measures when characterising heterog
 # Data
 
 This table presents estimates of treatment effect and standard error (se) from each of the projects broken by outcome, matching method and whether the model that produced it was the main model or a sensitivity test.
-
 
 ```{r}
 #| label: data
@@ -131,294 +173,436 @@ df_meta |>
   )
 ```
 
-# Outcome 1
+# Whole group analysis
 
-## Propensity Score Matching (PSM)
+## Outcome 1
 
-### Analysis output
-
+### Propensity Score Matching (PSM)
 ```{r}
 #| label: outcome 1 - psm - analysis
 
-# get our test data
-df_test <-
-  df_meta |>
-  dplyr::filter(
-    outcome == "Outcome 1",
-    matching == "psm",
-    model_main == TRUE
-  )
-
-# conduct the meta analysis
-test_meta <-
-  meta::metagen(
-    data = df_test,
-    TE = estimate,
-    seTE = se,
-    studlab = file,
-    common = FALSE,
-    random = TRUE,
-    prediction = TRUE,
-    method.random.ci = "HK" # recommended for most cases
-  )
-
-# output the analysis text
-test_meta
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = FALSE,
+  .outcome = "Outcome 1",
+  .matching = "psm"
+)
 ```
+
+::: panel-tabset
 
 ### Forest plot
 
 ```{r}
 #| label: outcome 1 - psm - forest
-
-# output a forest plot
-meta::forest(
-  x = test_meta,
-  sortvar = TE,
-  prediction = TRUE
-)
+meta$analysis |> display_forest_plot()
 ```
 
-### Interpretation
+### Description
 
-## Coarsened Exact Matching (CEM)
+`r meta$description`
 
-### Analysis output
+### Details
 
+```{r}
+#| label: outcome 1 - psm - details
+meta$analysis
+```
+
+:::
+
+### Coarsened Exact Matching (CEM)
 ```{r}
 #| label: outcome 1 - cem - analysis
 
-# get our test data
-df_test <-
-  df_meta |>
-  dplyr::filter(
-    outcome == "Outcome 1",
-    matching == "cem",
-    model_main == TRUE
-  )
-
-# conduct the meta analysis
-test_meta <-
-  meta::metagen(
-    data = df_test,
-    TE = estimate,
-    seTE = se,
-    studlab = file,
-    common = FALSE,
-    random = TRUE,
-    prediction = TRUE,
-    method.random.ci = "HK" # recommended for most cases
-  )
-
-# output the analysis text
-test_meta
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = FALSE,
+  .outcome = "Outcome 1",
+  .matching = "cem"
+)
 ```
+
+::: panel-tabset
 
 ### Forest plot
 
 ```{r}
 #| label: outcome 1 - cem - forest
+meta$analysis |> display_forest_plot()
+```
 
-# output a forest plot
-meta::forest(
-  x = test_meta,
-  sortvar = TE,
-  prediction = TRUE
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: outcome 1 - cem - details
+meta$analysis
+```
+
+:::
+
+### Synthetic DiD (SynthDiD)
+```{r}
+#| label: outcome 1 - synth - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = FALSE,
+  .outcome = "Outcome 1",
+  .matching = "synthdid"
 )
 ```
 
-### Interpretation
-
-## Synthetic DiD (SynthDiD)
-
-### Analysis output
-
-```{r}
-#| label: outcome 1 - synthdid - analysis
-
-# get our test data
-df_test <-
-  df_meta |>
-  dplyr::filter(
-    outcome == "Outcome 1",
-    matching == "synthdid",
-    model_main == TRUE
-  )
-
-# conduct the meta analysis
-test_meta <-
-  meta::metagen(
-    data = df_test,
-    TE = estimate,
-    seTE = se,
-    studlab = file,
-    common = FALSE,
-    random = TRUE,
-    prediction = TRUE,
-    method.random.ci = "HK" # recommended for most cases
-  )
-
-# output the analysis text
-test_meta
-```
+::: panel-tabset
 
 ### Forest plot
 
 ```{r}
-#| label: outcome 1 - synthdid - forest
-
-# output a forest plot
-meta::forest(
-  x = test_meta,
-  sortvar = TE,
-  prediction = TRUE
-)
+#| label: outcome 1 - synth - forest
+meta$analysis |> display_forest_plot()
 ```
 
-### Interpretation
+### Description
 
-# Outcome 2
+`r meta$description`
 
-## Propensity Score Matching (PSM)
+### Details
 
-### Analysis output
+```{r}
+#| label: outcome 1 - synth - details
+meta$analysis
+```
 
+:::
+
+
+## Outcome 2
+
+### Propensity Score Matching (PSM)
 ```{r}
 #| label: outcome 2 - psm - analysis
 
-# get our test data
-df_test <-
-  df_meta |>
-  dplyr::filter(
-    outcome == "Outcome 2",
-    matching == "psm",
-    model_main == TRUE
-  )
-
-# conduct the meta analysis
-test_meta <-
-  meta::metagen(
-    data = df_test,
-    TE = estimate,
-    seTE = se,
-    studlab = file,
-    common = FALSE,
-    random = TRUE,
-    prediction = TRUE,
-    method.random.ci = "HK" # recommended for most cases
-  )
-
-# output the analysis text
-test_meta
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = FALSE,
+  .outcome = "Outcome 2",
+  .matching = "psm"
+)
 ```
+
+::: panel-tabset
 
 ### Forest plot
 
 ```{r}
 #| label: outcome 2 - psm - forest
-
-# output a forest plot
-meta::forest(
-  x = test_meta,
-  sortvar = TE,
-  prediction = TRUE
-)
+meta$analysis |> display_forest_plot()
 ```
 
-### Interpretation
+### Description
 
-## Coarsened Exact Matching (CEM)
+`r meta$description`
 
-### Analysis output
+### Details
 
+```{r}
+#| label: outcome 2 - psm - details
+meta$analysis
+```
+
+:::
+
+### Coarsened Exact Matching (CEM)
 ```{r}
 #| label: outcome 2 - cem - analysis
 
-# get our test data
-df_test <-
-  df_meta |>
-  dplyr::filter(
-    outcome == "Outcome 2",
-    matching == "cem",
-    model_main == TRUE
-  )
-
-# conduct the meta analysis
-test_meta <-
-  meta::metagen(
-    data = df_test,
-    TE = estimate,
-    seTE = se,
-    studlab = file,
-    common = FALSE,
-    random = TRUE,
-    prediction = TRUE,
-    method.random.ci = "HK" # recommended for most cases
-  )
-
-# output the analysis text
-test_meta
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = FALSE,
+  .outcome = "Outcome 2",
+  .matching = "cem"
+)
 ```
+
+::: panel-tabset
 
 ### Forest plot
 
 ```{r}
 #| label: outcome 2 - cem - forest
+meta$analysis |> display_forest_plot()
+```
 
-# output a forest plot
-meta::forest(
-  x = test_meta,
-  sortvar = TE,
-  prediction = TRUE
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: outcome 2 - cem - details
+meta$analysis
+```
+
+:::
+
+### Synthetic DiD (SynthDiD)
+```{r}
+#| label: outcome 2 - synth - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = FALSE,
+  .outcome = "Outcome 2",
+  .matching = "synthdid"
 )
 ```
 
-### Interpretation
-
-## Synthetic DiD (SynthDiD)
-
-### Analysis output
-
-```{r}
-#| label: outcome 2 - synthdid - analysis
-
-# get our test data
-df_test <-
-  df_meta |>
-  dplyr::filter(
-    outcome == "Outcome 2",
-    matching == "synthdid",
-    model_main == TRUE
-  )
-
-# conduct the meta analysis
-test_meta <-
-  meta::metagen(
-    data = df_test,
-    TE = estimate,
-    seTE = se,
-    studlab = file,
-    common = FALSE,
-    random = TRUE,
-    prediction = TRUE,
-    method.random.ci = "HK" # recommended for most cases
-  )
-
-# output the analysis text
-test_meta
-```
+::: panel-tabset
 
 ### Forest plot
 
 ```{r}
-#| label: outcome 2 - synthdid - forest
+#| label: outcome 2 - synth - forest
+meta$analysis |> display_forest_plot()
+```
 
-# output a forest plot
-meta::forest(
-  x = test_meta,
-  sortvar = TE,
-  prediction = TRUE
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: outcome 2 - synth - details
+meta$analysis
+```
+
+:::
+
+
+# Subgroup analysis
+
+## Outcome 1
+
+### Propensity Score Matching (PSM)
+
+```{r}
+#| label: subgroup - outcome 1 - psm - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = TRUE,
+  .outcome = "Outcome 1",
+  .matching = "psm"
 )
 ```
 
-### Interpretation
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup - outcome 1 - psm - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup - outcome 1 - psm - details
+meta$analysis
+```
+
+:::
+
+### Coarsened Exact Matching (CEM)
+
+```{r}
+#| label: subgroup - outcome 1 - cem - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = TRUE,
+  .outcome = "Outcome 1",
+  .matching = "cem"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup - outcome 1 - cem - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup - outcome 1 - cem - details
+meta$analysis
+```
+
+:::
+
+### Synthetic DiD (SynthDiD)
+
+```{r}
+#| label: subgroup - outcome 1 - synth - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = TRUE,
+  .outcome = "Outcome 1",
+  .matching = "synthdid"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup - outcome 1 - synth - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup - outcome 1 - synth - details
+meta$analysis
+```
+
+:::
+
+## Outcome 2
+
+### Propensity Score Matching (PSM)
+
+```{r}
+#| label: subgroup - outcome 2 - psm - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = TRUE,
+  .outcome = "Outcome 2",
+  .matching = "psm"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup - outcome 2 - psm - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup - outcome 2 - psm - details
+meta$analysis
+```
+
+:::
+
+### Coarsened Exact Matching (CEM)
+
+```{r}
+#| label: subgroup - outcome 2 - cem - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = TRUE,
+  .outcome = "Outcome 2",
+  .matching = "cem"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup - outcome 2 - cem - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup - outcome 2 - cem - details
+meta$analysis
+```
+
+:::
+
+### Synthetic DiD (SynthDiD)
+
+```{r}
+#| label: subgroup - outcome 2 - synth - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = TRUE,
+  .outcome = "Outcome 2",
+  .matching = "synthdid"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup - outcome 2 - synth - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup - outcome 2 - synth - details
+meta$analysis
+```
+
+:::
