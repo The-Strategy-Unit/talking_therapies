@@ -3153,7 +3153,7 @@ This section analyses the proportion of referrals coded as **Mutually Agreed Com
 
 Where data permits, we also examine referrals coded as **ended before the therapist planned** (code 47) and referrals that **ended earlier than the patient wanted** (code 48). Due to the requirements of the chi-squared analysis - which requires a minimum of five events per cell - these categories may be combined with 'Other codes' if referrals volumes are insufficient.
 
-The bar chart below displays `r params$intervention_long_name`'s data only. The chart highlights broadly similar profiles in discharge reason pre- and post-intervention for the 5+ treatment intensity group. The 2-4 treatment intensity group indicates a 2.5 percentage point increase in the use of 'Other codes', accompanied by small reductions in the use of the remaining discharge codes.
+The bar chart below displays `r params$intervention_long_name`'s data only. The chart highlights broadly similar profiles in discharge reason pre- and post-intervention for the 5+ treatment intensity group. The 2-4 treatment intensity group indicates a 24.8 percentage point increase in the use of 'Other codes', accompanied by small reductions in the use of the remaining discharge codes.
 
 ```{r}
 #| label: supp - mutual - plot
@@ -3193,7 +3193,9 @@ supp2$bar_plot
 supp2$gt_chi2_results
 ```
 
-The chi-squared test confirms that the observed changes are not statistically significant for both treatment intensity groups.
+The chi-squared test confirms that the observed changes are statistically significant for the 5+ treatment contact intensity group.
+
+These findings suggest that the interventions had a positive effect on the proportions of patients who achieved reliable recovery for those who received 5+ treatment contacts.
 
 # Conclusions
 
@@ -3207,7 +3209,7 @@ For the CEM and synthetic approaches we performed a series of sensitivity checks
 
 ## Outcome 1
 
-Only the CEM baseline shows a statistically significant reduction in Outcome 1. PSM and synthdid estimates are small and not significant.
+Only the PSM baseline shows a statistically significant increase in Outcome 1. CEM and synthdid estimates are small and not significant.
 
 ## Outcome 2
 
