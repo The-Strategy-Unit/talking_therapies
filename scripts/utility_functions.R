@@ -2578,14 +2578,25 @@ interpolate_missing_month_outcomes_for_intervention_service <- function(
   return(df_return)
 }
 
+#' Conducat a meta analysis
+#'
+#' @param .df Tibble - data to be analysed
+#' @param .subgroup Character - the name of the column to use for subgroup analysis
+#' @param .outcome Character - the value of the `outcome` variable to filter df for
+#' @param .matching Character - the value of the `matching` variable to filter df for
+#' @param .model_main Logical - TRUE = only main models to be analysed
+#'
+#' @returns
+#'
 conduct_meta_analysis <- function(
   .df,
-  .subgroup = FALSE,
+  .subgroup = c(NULL, "sub_component", "sub_targetgroup"),
   .outcome = c("Outcome 1", "Outcome 2"),
   .matching = c("psm", "cem", "synthdid"),
   .model_main = TRUE
 ) {
   # ensure a valid value was given
+  match.arg(.subgroup)
   match.arg(.outcome)
   match.arg(.matching)
 
@@ -2599,7 +2610,7 @@ conduct_meta_analysis <- function(
     )
 
   # decide whether to conduct a full or subgroup analysis
-  if (.subgroup == FALSE) {
+  if (is.null(.subgroup)) {
     # no subgroup analysis --
 
     # get the meta analysis
@@ -2635,7 +2646,7 @@ conduct_meta_analysis <- function(
         random = TRUE, # use a random-effects model
         prediction = TRUE, # include a prediction interval for future studies
         method.random.ci = "HK", # recommended for most cases
-        subgroup = category
+        subgroup = df_test[[.subgroup]] # supply the subgroup as a vector
       )
 
     # summarise in a description

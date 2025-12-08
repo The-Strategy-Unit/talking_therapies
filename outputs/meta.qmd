@@ -60,6 +60,9 @@ df_lu <-
     sheet = "lu"
   )
 
+# load the lookup file
+# browseURL(here::here("data", "project", "tt_meta_project_lu.xlsx"))
+
 # add the lookup details to df_meta
 df_meta <-
   df_meta |>
@@ -178,12 +181,13 @@ df_meta |>
 ## Outcome 1
 
 ### Propensity Score Matching (PSM)
+
 ```{r}
 #| label: outcome 1 - psm - analysis
 
 meta <- conduct_meta_analysis(
   .df = df_meta,
-  .subgroup = FALSE,
+  .subgroup = NULL,
   .outcome = "Outcome 1",
   .matching = "psm"
 )
@@ -212,12 +216,13 @@ meta$analysis
 :::
 
 ### Coarsened Exact Matching (CEM)
+
 ```{r}
 #| label: outcome 1 - cem - analysis
 
 meta <- conduct_meta_analysis(
   .df = df_meta,
-  .subgroup = FALSE,
+  .subgroup = NULL,
   .outcome = "Outcome 1",
   .matching = "cem"
 )
@@ -246,12 +251,13 @@ meta$analysis
 :::
 
 ### Synthetic DiD (SynthDiD)
+
 ```{r}
 #| label: outcome 1 - synth - analysis
 
 meta <- conduct_meta_analysis(
   .df = df_meta,
-  .subgroup = FALSE,
+  .subgroup = NULL,
   .outcome = "Outcome 1",
   .matching = "synthdid"
 )
@@ -279,23 +285,22 @@ meta$analysis
 
 :::
 
-
 ## Outcome 2
 
 ### Propensity Score Matching (PSM)
+
 ```{r}
 #| label: outcome 2 - psm - analysis
 
 meta <- conduct_meta_analysis(
   .df = df_meta,
-  .subgroup = FALSE,
+  .subgroup = NULL,
   .outcome = "Outcome 2",
   .matching = "psm"
 )
 ```
 
 ::: panel-tabset
-
 ### Forest plot
 
 ```{r}
@@ -317,19 +322,19 @@ meta$analysis
 :::
 
 ### Coarsened Exact Matching (CEM)
+
 ```{r}
 #| label: outcome 2 - cem - analysis
 
 meta <- conduct_meta_analysis(
   .df = df_meta,
-  .subgroup = FALSE,
+  .subgroup = NULL,
   .outcome = "Outcome 2",
   .matching = "cem"
 )
 ```
 
 ::: panel-tabset
-
 ### Forest plot
 
 ```{r}
@@ -351,12 +356,13 @@ meta$analysis
 :::
 
 ### Synthetic DiD (SynthDiD)
+
 ```{r}
 #| label: outcome 2 - synth - analysis
 
 meta <- conduct_meta_analysis(
   .df = df_meta,
-  .subgroup = FALSE,
+  .subgroup = NULL,
   .outcome = "Outcome 2",
   .matching = "synthdid"
 )
@@ -384,19 +390,18 @@ meta$analysis
 
 :::
 
-
-# Subgroup analysis
+# Subgroup analysis - Component
 
 ## Outcome 1
 
 ### Propensity Score Matching (PSM)
 
 ```{r}
-#| label: subgroup - outcome 1 - psm - analysis
+#| label: subgroup 1 - outcome 1 - psm - analysis
 
 meta <- conduct_meta_analysis(
   .df = df_meta,
-  .subgroup = TRUE,
+  .subgroup = "sub_component",
   .outcome = "Outcome 1",
   .matching = "psm"
 )
@@ -407,7 +412,7 @@ meta <- conduct_meta_analysis(
 ### Forest plot
 
 ```{r}
-#| label: subgroup - outcome 1 - psm - forest
+#| label: subgroup 1 - outcome 1 - psm - forest
 #| fig-height: 5
 meta$analysis |> display_forest_plot()
 ```
@@ -419,7 +424,7 @@ meta$analysis |> display_forest_plot()
 ### Details
 
 ```{r}
-#| label: subgroup - outcome 1 - psm - details
+#| label: subgroup 1 - outcome 1 - psm - details
 meta$analysis
 ```
 
@@ -428,11 +433,11 @@ meta$analysis
 ### Coarsened Exact Matching (CEM)
 
 ```{r}
-#| label: subgroup - outcome 1 - cem - analysis
+#| label: subgroup 1 - outcome 1 - cem - analysis
 
 meta <- conduct_meta_analysis(
   .df = df_meta,
-  .subgroup = TRUE,
+  .subgroup = "sub_component",
   .outcome = "Outcome 1",
   .matching = "cem"
 )
@@ -443,7 +448,7 @@ meta <- conduct_meta_analysis(
 ### Forest plot
 
 ```{r}
-#| label: subgroup - outcome 1 - cem - forest
+#| label: subgroup 1 - outcome 1 - cem - forest
 #| fig-height: 5
 meta$analysis |> display_forest_plot()
 ```
@@ -455,7 +460,7 @@ meta$analysis |> display_forest_plot()
 ### Details
 
 ```{r}
-#| label: subgroup - outcome 1 - cem - details
+#| label: subgroup 1 - outcome 1 - cem - details
 meta$analysis
 ```
 
@@ -464,11 +469,11 @@ meta$analysis
 ### Synthetic DiD (SynthDiD)
 
 ```{r}
-#| label: subgroup - outcome 1 - synth - analysis
+#| label: subgroup 1 - outcome 1 - synth - analysis
 
 meta <- conduct_meta_analysis(
   .df = df_meta,
-  .subgroup = TRUE,
+  .subgroup = "sub_component",
   .outcome = "Outcome 1",
   .matching = "synthdid"
 )
@@ -479,7 +484,7 @@ meta <- conduct_meta_analysis(
 ### Forest plot
 
 ```{r}
-#| label: subgroup - outcome 1 - synth - forest
+#| label: subgroup 1 - outcome 1 - synth - forest
 #| fig-height: 5
 meta$analysis |> display_forest_plot()
 ```
@@ -491,7 +496,7 @@ meta$analysis |> display_forest_plot()
 ### Details
 
 ```{r}
-#| label: subgroup - outcome 1 - synth - details
+#| label: subgroup 1 - outcome 1 - synth - details
 meta$analysis
 ```
 
@@ -502,11 +507,11 @@ meta$analysis
 ### Propensity Score Matching (PSM)
 
 ```{r}
-#| label: subgroup - outcome 2 - psm - analysis
+#| label: subgroup 1 - outcome 2 - psm - analysis
 
 meta <- conduct_meta_analysis(
   .df = df_meta,
-  .subgroup = TRUE,
+  .subgroup = "sub_component",
   .outcome = "Outcome 2",
   .matching = "psm"
 )
@@ -517,7 +522,7 @@ meta <- conduct_meta_analysis(
 ### Forest plot
 
 ```{r}
-#| label: subgroup - outcome 2 - psm - forest
+#| label: subgroup1  - outcome 2 - psm - forest
 #| fig-height: 5
 meta$analysis |> display_forest_plot()
 ```
@@ -529,7 +534,7 @@ meta$analysis |> display_forest_plot()
 ### Details
 
 ```{r}
-#| label: subgroup - outcome 2 - psm - details
+#| label: subgroup 1 - outcome 2 - psm - details
 meta$analysis
 ```
 
@@ -538,11 +543,11 @@ meta$analysis
 ### Coarsened Exact Matching (CEM)
 
 ```{r}
-#| label: subgroup - outcome 2 - cem - analysis
+#| label: subgroup 1 - outcome 2 - cem - analysis
 
 meta <- conduct_meta_analysis(
   .df = df_meta,
-  .subgroup = TRUE,
+  .subgroup = "sub_component",
   .outcome = "Outcome 2",
   .matching = "cem"
 )
@@ -553,7 +558,7 @@ meta <- conduct_meta_analysis(
 ### Forest plot
 
 ```{r}
-#| label: subgroup - outcome 2 - cem - forest
+#| label: subgroup 1 - outcome 2 - cem - forest
 #| fig-height: 5
 meta$analysis |> display_forest_plot()
 ```
@@ -565,7 +570,7 @@ meta$analysis |> display_forest_plot()
 ### Details
 
 ```{r}
-#| label: subgroup - outcome 2 - cem - details
+#| label: subgroup 1 - outcome 2 - cem - details
 meta$analysis
 ```
 
@@ -574,11 +579,11 @@ meta$analysis
 ### Synthetic DiD (SynthDiD)
 
 ```{r}
-#| label: subgroup - outcome 2 - synth - analysis
+#| label: subgroup 1 - outcome 2 - synth - analysis
 
 meta <- conduct_meta_analysis(
   .df = df_meta,
-  .subgroup = TRUE,
+  .subgroup = "sub_component",
   .outcome = "Outcome 2",
   .matching = "synthdid"
 )
@@ -589,7 +594,7 @@ meta <- conduct_meta_analysis(
 ### Forest plot
 
 ```{r}
-#| label: subgroup - outcome 2 - synth - forest
+#| label: subgroup 1 - outcome 2 - synth - forest
 #| fig-height: 5
 meta$analysis |> display_forest_plot()
 ```
@@ -601,8 +606,232 @@ meta$analysis |> display_forest_plot()
 ### Details
 
 ```{r}
-#| label: subgroup - outcome 2 - synth - details
+#| label: subgroup 1 - outcome 2 - synth - details
 meta$analysis
 ```
 
 :::
+
+
+# Subgroup analysis - Target
+
+## Outcome 1
+
+### Propensity Score Matching (PSM)
+
+```{r}
+#| label: subgroup 2 - outcome 1 - psm - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = "sub_targetgroup",
+  .outcome = "Outcome 1",
+  .matching = "psm"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup 2 - outcome 1 - psm - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup 2 - outcome 1 - psm - details
+meta$analysis
+```
+
+:::
+
+### Coarsened Exact Matching (CEM)
+
+```{r}
+#| label: subgroup 2 - outcome 1 - cem - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = "sub_targetgroup",
+  .outcome = "Outcome 1",
+  .matching = "cem"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup 2 - outcome 1 - cem - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup 2 - outcome 1 - cem - details
+meta$analysis
+```
+
+:::
+
+### Synthetic DiD (SynthDiD)
+
+```{r}
+#| label: subgroup 2 - outcome 1 - synth - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = "sub_targetgroup",
+  .outcome = "Outcome 1",
+  .matching = "synthdid"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup 2 - outcome 1 - synth - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup 2 - outcome 1 - synth - details
+meta$analysis
+```
+
+:::
+
+## Outcome 2
+
+### Propensity Score Matching (PSM)
+
+```{r}
+#| label: subgroup 2 - outcome 2 - psm - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = "sub_targetgroup",
+  .outcome = "Outcome 2",
+  .matching = "psm"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup 2 - outcome 2 - psm - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup 2 - outcome 2 - psm - details
+meta$analysis
+```
+
+:::
+
+### Coarsened Exact Matching (CEM)
+
+```{r}
+#| label: subgroup 2 - outcome 2 - cem - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = "sub_targetgroup",
+  .outcome = "Outcome 2",
+  .matching = "cem"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup 2 - outcome 2 - cem - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup 2 - outcome 2 - cem - details
+meta$analysis
+```
+
+:::
+
+### Synthetic DiD (SynthDiD)
+
+```{r}
+#| label: subgroup 2 - outcome 2 - synth - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = "sub_targetgroup",
+  .outcome = "Outcome 2",
+  .matching = "synthdid"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup 2 - outcome 2 - synth - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup 2 - outcome 2 - synth - details
+meta$analysis
+```
+
+:::
+
