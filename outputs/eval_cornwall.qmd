@@ -116,43 +116,43 @@ While there are signals of benefit, especially for reliable recovery, the eviden
 
 **Outcomes measured**
 
- - Outcome 1: proportion of patients attending five or more treatment sessions.
+-   Outcome 1: proportion of patients attending five or more treatment sessions.
 
- - Outcome 2: proportion of patients achieving reliable recovery
+-   Outcome 2: proportion of patients achieving reliable recovery
 
 **Analytical methods**
 
- - Manual difference-in-differences (DiD) using matched services via Propensity Score Matching (PSM) and Coarsened Exact Matching (CEM)
+-   Manual difference-in-differences (DiD) using matched services via Propensity Score Matching (PSM) and Coarsened Exact Matching (CEM)
 
- - Synthetic DiD using weighted synthetic controls
+-   Synthetic DiD using weighted synthetic controls
 
- - Sensitivity analyses tested robustness by varying control groups and intervention start dates
+-   Sensitivity analyses tested robustness by varying control groups and intervention start dates
 
 **Key findings**
 
-- No statistically significant improvements were found for either outcome across models.
+-   No statistically significant improvements were found for either outcome across models.
 
-- Outcome 2 showed positive effects in some models, but results were highly sensitive to analytical choices.
+-   Outcome 2 showed positive effects in some models, but results were highly sensitive to analytical choices.
 
-- Outcome 1 showed a mixture of slightly positive trends, but none reached statistical significance.
+-   Outcome 1 showed a mixture of slightly positive trends, but none reached statistical significance.
 
 **Limitations**
 
- - Only one treated unit, leading to wide confidence intervals.
+-   Only one treated unit, leading to wide confidence intervals.
 
- - Possible hidden interventions in control services.
+-   Possible hidden interventions in control services.
 
- - Staggered rollout of interventions complicates analysis.
+-   Staggered rollout of interventions complicates analysis.
 
- - Synthetic control models are sensitive to outliers and tend to be more conservative in estimating standard error - which led to wider confidence intervals.
+-   Synthetic control models are sensitive to outliers and tend to be more conservative in estimating standard error - which led to wider confidence intervals.
 
 **Recommendations**
 
- - Conduct a randomised controlled trial (RCT) using matched services.
+-   Conduct a randomised controlled trial (RCT) using matched services.
 
- - Randomly assign services to intervention or control groups.
+-   Randomly assign services to intervention or control groups.
 
- - Use pre-registered DiD or mixed-effects models with robustness checks.
+-   Use pre-registered DiD or mixed-effects models with robustness checks.
 
 ```{r}
 #| label: List of interventions
@@ -1348,7 +1348,7 @@ Outcome 1: ❌ The trends are not parallel - they are convergent
 Outcome 2: ❌ The trends are not parallel - they are convergent
 
 ```{r}
-#| label: PSM - Herefordshire and Worcestershire 
+#| label: PSM - Herefordshire and Worcestershire
 #| fig-height: 8
 #| cache: true
 plot_list[[2]]
@@ -1374,7 +1374,7 @@ Outcome 1: ❌ The trends are not parallel - they are slightly convergent
 Outcome 2: ❌ The trends are not parallel - they are slightly convergent
 
 ```{r}
-#| label: PSM - First Step 
+#| label: PSM - First Step
 #| fig-height: 8
 #| cache: true
 plot_list[[4]]
@@ -1667,7 +1667,7 @@ df_analysis3 <-
       "#f9bf07",
       adjustcolor("#9d928a", alpha.f = 0.5)
     )
-  ) 
+  )
 
 # conduct did analysis
 did <-
@@ -1828,15 +1828,15 @@ We now assess the parallel trends for `r params$intervention_long_name` (shown i
 
 #### Vita Health Group Newcastle IAPT (C2J4D)
 
-**Outcome 1:** ❌ The trends are not parallel -  they intersected in late 2022
+**Outcome 1:** ❌ The trends are not parallel - they intersected in late 2022
 
 **Outcome 2:** ✔️ The trends are almost parallel,there is a hint of divergent but overall a close match
+
 ```{r}
 #| label: cem - Vita Health Newcastle
 #| fig-height: 8
 #| cache: true
 #| eval: true
-
 
 plot_list[[1]]
 ```
@@ -1848,7 +1848,7 @@ plot_list[[1]]
 **Outcome 2:** ✔️ The trends are almost parallel,there is a hint of convergent but overall a close match
 
 ```{r}
-#| label: cem - Alliance Psychology 
+#| label: cem - Alliance Psychology
 #| fig-height: 8
 #| cache: true
 #| eval: true
@@ -1925,6 +1925,7 @@ A total of 6 Talking Therapy services were matched with `r params$intervention_l
 #| cache: true
 #| eval: true
 
+# update
 # list out the matches with parallel pre-intervention trends
 matches_parallel_ods <- c(
   "NR5",
@@ -2100,7 +2101,8 @@ Here are the two outcomes excluding the anomalous months:
 df_analysis2 <-
   df_analysis |>
   dplyr::filter(
-    !(ods_code == "RJ8" & calc_month %in% zoo::as.yearmon(c("Oct 2023","Sep 2023"))),
+    !(ods_code == "RJ8" &
+      calc_month %in% zoo::as.yearmon(c("Oct 2023", "Sep 2023"))),
     !(ods_code == "T6G0K" &
       calc_month %in% zoo::as.yearmon(c("Dec 2024"))),
     !(ods_code == "RTF61" &
@@ -2384,7 +2386,7 @@ did_overall |>
 
 These sensitivity tests **add new insight** to the main findings.
 
--   **Outcome 1** The two models (CEM and keeping anomalous months) show no statistically significant effect but using all CEM controls model is statistically significant.  
+-   **Outcome 1** The two models (CEM and keeping anomalous months) show no statistically significant effect but using all CEM controls model is statistically significant.
 
 -   **Outcome 2** All three models show a positive and statistically significant effect.
 
@@ -2810,7 +2812,7 @@ What impact does using the matches returned from the coarsened exact matching (C
 #| fig-height: 7
 #| warning: false
 #| cache: true
-#| eval: true
+#| eval: false
 
 set.seed(12345)
 
@@ -2871,7 +2873,7 @@ did$did_plot
 #| fig-height: 7
 #| warning: false
 #| cache: true
-#| eval: true
+#| eval: false
 
 set.seed(12345)
 
@@ -2924,16 +2926,138 @@ did_meta <-
 did$did_plot
 ```
 
-`r params$intervention_long_name`'s observed outcome was **5.9% higher** than the synthetic control expectation. However, the 95% confidence interval (5% to 6.8%) not includes zero, so the result is  statistically significant effect.
+`r params$intervention_long_name`'s observed outcome was **5.9% higher** than the synthetic control expectation. However, the 95% confidence interval (5% to 6.8%) not includes zero, so the result is statistically significant effect.
+
+#### Using matches from both PSM and CEM
+
+What impact does using the matches returned from the propensity score matching (PSM) and coarsened exact matching (CEM) section have?
+
+```{r}
+#| label: synthdid - sensitivity both - outcome 1
+#| fig-height: 7
+#| warning: false
+#| cache: true
+#| eval: true
+
+set.seed(12345)
+
+# get a did estimate
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df,
+    outcome = "o1_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = params$ods_intervention,
+    ods_controls = unique(c(controls$psm_all, controls$cem_all)),
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .yearmon_scale_to = zoo::as.yearmon("Dec 2026"),
+    .ods_treated = params$ods_intervention,
+    str_treated = params$intervention_short_name,
+    summary_spec = "Alternative 3 - PSM and CEM matches",
+    summary_outcome = "Outcome 1",
+    str_outcome = "o1_rate",
+    labs_title = "Outcome 1: discharges with 5+ treatment contacts"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  dplyr::bind_rows(
+    did_meta,
+    tibble::tibble(
+      specification = "Synthdid alternative 3 (PSM & CEM controls)",
+      outcome = "Outcome 1",
+      estimate = as.numeric(did$did_estimate),
+      se = did$did_se
+    )
+  )
+
+# display the plot
+did$did_plot
+```
+
+
+```{r}
+#| label: synthdid - sensitivity both - outcome 2
+#| fig-height: 7
+#| warning: false
+#| cache: true
+#| eval: true
+
+set.seed(12345)
+
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df,
+    outcome = "o2_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = params$ods_intervention,
+    ods_controls = unique(c(controls$psm_all, controls$cem_all)),
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .yearmon_scale_to = zoo::as.yearmon("Dec 2026"),
+    .ods_treated = params$ods_intervention,
+    str_treated = params$intervention_short_name,
+    summary_spec = "Alternative 3 - PSM and CEM matches",
+    summary_outcome = "Outcome 2",
+    str_outcome = "o2_rate",
+    labs_title = "Outcome 2: discharges achieving reliable recovery"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  dplyr::bind_rows(
+    did_meta,
+    tibble::tibble(
+      specification = "Synthdid alternative 3 (PSM & CEM controls)",
+      outcome = "Outcome 2",
+      estimate = as.numeric(did$did_estimate),
+      se = did$did_se
+    )
+  )
+
+# display the plot
+did$did_plot
+```
 
 #### Summary
-
 
 ```{r}
 #| label: synthdid - sensitivity - summary table
 #| cache: true
 #| eval: true
 
+# summarise all
 did_overall |>
   display_did_summary_in_gt(sensitivity_summary = TRUE)
 
@@ -2944,14 +3068,13 @@ saveRDS(
 )
 ```
 
-
 The main model's estimates are not statistically significant, but the alternative CEM model reveal significant effects for the two outcome.
 
 the alternative CEM model produces narrower confidence intervals, suggesting better model precision.
 
 The sensitivity analysis suggest that the main model may be underpowered or imprecise. The choice of matching method materially affects the interpretation of treatment effects for Outcome 1 and Outcome 2 .
 
-There is a moderate evidence of statistically significant positive effect  on Outcome 1 and Outcome 2.Thus, The choice of matching method and variation may affect the result of both outcomes.  
+There is a moderate evidence of statistically significant positive effect on Outcome 1 and Outcome 2.Thus, The choice of matching method and variation may affect the result of both outcomes.
 
 ## Supplementary analysis
 
@@ -3115,7 +3238,7 @@ the PSM analysis yields a statistically significant result (confidence interval 
 
 the CEM analysis yields a statistically significant result (confidence interval does not include zero), suggesting a 5.04% increase attributable to the intervention.
 
-SynthDiD shows 4.9% point estimate  but lacks precision (wide confidence interval).
+SynthDiD shows 4.9% point estimate but lacks precision (wide confidence interval).
 
 There is **moderate evidence of a positive treatment effect on Outcome 2**, particularly when using PSM and CEM. This suggests the interventions may have improved the outcome, through results vary by method.
 

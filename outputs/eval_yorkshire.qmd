@@ -3121,7 +3121,7 @@ did <-
     .yearmon_scale_to = zoo::as.yearmon("Dec 2026"),
     .ods_treated = params$ods_intervention,
     str_treated = params$intervention_short_name,
-    summary_spec = "Alternative 3 - using a combination of PSM and CEM matches",
+    summary_spec = "Alternative 3 - PSM and CEM matches",
     summary_outcome = "Outcome 1",
     str_outcome = "o1_rate",
     labs_title = "Outcome 1: discharges with 5+ treatment contacts"
@@ -3139,7 +3139,7 @@ did_meta <-
   dplyr::bind_rows(
     did_meta,
     tibble::tibble(
-      specification = "Synthdid alternative 2 (CEM controls)",
+      specification = "Synthdid alternative 3 (PSM & CEM controls)",
       outcome = "Outcome 1",
       estimate = as.numeric(did$did_estimate),
       se = did$did_se
@@ -3180,7 +3180,7 @@ did <-
     .yearmon_scale_to = zoo::as.yearmon("Dec 2026"),
     .ods_treated = params$ods_intervention,
     str_treated = params$intervention_short_name,
-    summary_spec = "Alternative 3 - using a combination of PSM and CEM matches",
+    summary_spec = "Alternative 3 - PSM and CEM matches",
     summary_outcome = "Outcome 2",
     str_outcome = "o2_rate",
     labs_title = "Outcome 2: discharges achieving reliable recovery"
@@ -3217,7 +3217,7 @@ did$did_plot
 #| cache: true
 #| eval: true
 
-# all
+# update
 did_overall |>
   display_did_summary_in_gt(sensitivity_summary = TRUE)
 
