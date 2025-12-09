@@ -2593,12 +2593,13 @@ conduct_meta_analysis <- function(
   .subgroup = c(NULL, "sub_component", "sub_targetgroup"),
   .outcome = c("Outcome 1", "Outcome 2"),
   .matching = c("psm", "cem", "synthdid"),
-  .model_main = TRUE
+  .model_main = c("main", "(PSM & CEM controls)")
 ) {
   # ensure a valid value was given
   match.arg(.subgroup)
   match.arg(.outcome)
   match.arg(.matching)
+  match.arg(.model_main)
 
   # filter the data
   df_test <-
@@ -2606,7 +2607,7 @@ conduct_meta_analysis <- function(
     dplyr::filter(
       outcome == .outcome,
       matching == .matching,
-      model_main == TRUE
+      model_main == .model_main
     )
 
   # decide whether to conduct a full or subgroup analysis
