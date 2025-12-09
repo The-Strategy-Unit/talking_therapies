@@ -3054,13 +3054,136 @@ did$did_plot
 
 `r params$intervention_long_name`'s observed outcome was **1.1% higher** than the synthetic control expectation, and the 95% confidence interval (0.3% to 1.9%) indicates this is a signficant result.
 
+#### Using matches from both PSM and CEM
+
+What impact does using the matches returned from the propensity score matching (PSM) and coarsened exact matching (CEM) section have?
+
+```{r}
+#| label: synthdid - sensitivity both - outcome 1
+#| fig-height: 7
+#| warning: false
+#| cache: true
+#| eval: true
+
+set.seed(12345)
+
+# get a did estimate
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df_temp,
+    outcome = "o1_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = params$ods_intervention,
+    ods_controls = unique(c(controls$psm_all, controls$cem_all)),
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .yearmon_scale_to = zoo::as.yearmon("Dec 2026"),
+    .ods_treated = params$ods_intervention,
+    str_treated = params$intervention_short_name,
+    summary_spec = "Alternative 3 - PSM and CEM matches",
+    summary_outcome = "Outcome 1",
+    str_outcome = "o1_rate",
+    labs_title = "Outcome 1: discharges with 5+ treatment contacts"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  dplyr::bind_rows(
+    did_meta,
+    tibble::tibble(
+      specification = "Synthdid alternative 3 (PSM & CEM controls)",
+      outcome = "Outcome 1",
+      estimate = as.numeric(did$did_estimate),
+      se = did$did_se
+    )
+  )
+
+# display the plot
+did$did_plot
+```
+
+
+```{r}
+#| label: synthdid - sensitivity both - outcome 2
+#| fig-height: 7
+#| warning: false
+#| cache: true
+#| eval: true
+
+set.seed(12345)
+
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df_temp,
+    outcome = "o2_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = params$ods_intervention,
+    ods_controls = unique(c(controls$psm_all, controls$cem_all)),
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .yearmon_scale_to = zoo::as.yearmon("Dec 2026"),
+    .ods_treated = params$ods_intervention,
+    str_treated = params$intervention_short_name,
+    summary_spec = "Alternative 3 - PSM and CEM matches",
+    summary_outcome = "Outcome 2",
+    str_outcome = "o2_rate",
+    labs_title = "Outcome 2: discharges achieving reliable recovery"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  dplyr::bind_rows(
+    did_meta,
+    tibble::tibble(
+      specification = "Synthdid alternative 3 (PSM & CEM controls)",
+      outcome = "Outcome 2",
+      estimate = as.numeric(did$did_estimate),
+      se = did$did_se
+    )
+  )
+
+# display the plot
+did$did_plot
+```
+
 #### Summary
 
 ```{r}
 #| label: synthdid - sensitivity - summary table
-#| cache: true
+#| cache: false
 #| eval: true
 
+# summarise
 did_overall |>
   display_did_summary_in_gt(sensitivity_summary = TRUE)
 

@@ -2821,6 +2821,129 @@ We adopted this approach because synthetic-control methods require a reasonably 
 
 In this section we examine how restricting the donor pool influences the DiD estimates and assess whether our original conclusions remain robust or become sensitive to these restrictions.
 
+#### Using matches from PSM
+
+What impact does using the matches returned from the [coarsened exact matching (CEM)](#coarsened-exact-matching-mar-2024) section have?
+
+```{r}
+#| label: synthdid - sensitivity PSM - outcome 1
+#| fig-height: 7
+#| warning: false
+#| cache: true
+#| eval: false
+
+set.seed(12345)
+
+# get a did estimate
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df,
+    outcome = "o1_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = params$ods_intervention,
+    ods_controls = controls$psm_all,
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .yearmon_scale_to = zoo::as.yearmon("Mar 2026"),
+    .ods_treated = params$ods_intervention,
+    str_treated = params$intervention_short_name,
+    summary_spec = "Alternative 1 - using all PSM matches",
+    summary_outcome = "Outcome 1",
+    str_outcome = "o1_rate",
+    labs_title = "Outcome 1: discharges with 5+ treatment contacts"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  dplyr::bind_rows(
+    did_meta,
+    tibble::tibble(
+      specification = "Synthdid alternative 1 (PSM controls)",
+      outcome = "Outcome 1",
+      estimate = as.numeric(did$did_estimate),
+      se = did$did_se
+    )
+  )
+
+# display the plot
+did$did_plot
+```
+
+`r params$intervention_long_name`'s observed outcome was **2.8% higher** than the synthetic control expectation. However, the 95% confidence interval (-10% to 16%) includes zero, so the result is not statistically distinguishable from no effect.
+
+```{r}
+#| label: synthdid - sensitivity PSM - outcome 2
+#| fig-height: 7
+#| warning: false
+#| cache: true
+#| eval: false
+
+set.seed(12345)
+
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df,
+    outcome = "o2_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = params$ods_intervention,
+    ods_controls = controls$cem_all,
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .yearmon_scale_to = zoo::as.yearmon("Mar 2026"),
+    .ods_treated = params$ods_intervention,
+    str_treated = params$intervention_short_name,
+    summary_spec = "Alternative 1 - using all PSM matches",
+    summary_outcome = "Outcome 2",
+    str_outcome = "o2_rate",
+    labs_title = "Outcome 2: discharges achieving reliable recovery"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  dplyr::bind_rows(
+    did_meta,
+    tibble::tibble(
+      specification = "Synthdid alternative 1 (PSM controls)",
+      outcome = "Outcome 2",
+      estimate = as.numeric(did$did_estimate),
+      se = did$did_se
+    )
+  )
+
+# display the plot
+did$did_plot
+```
+
 #### Using matches from CEM
 
 What impact does using the matches returned from the [coarsened exact matching (CEM)](#coarsened-exact-matching-mar-2024) section have?
@@ -2855,7 +2978,7 @@ did <-
     .yearmon_scale_to = zoo::as.yearmon("Mar 2026"),
     .ods_treated = params$ods_intervention,
     str_treated = params$intervention_short_name,
-    summary_spec = "Alternative 1 - using all CEM matches",
+    summary_spec = "Alternative 2 - using all CEM matches",
     summary_outcome = "Outcome 1",
     str_outcome = "o1_rate",
     labs_title = "Outcome 1: discharges with 5+ treatment contacts"
@@ -2915,7 +3038,7 @@ did <-
     .yearmon_scale_to = zoo::as.yearmon("Mar 2026"),
     .ods_treated = params$ods_intervention,
     str_treated = params$intervention_short_name,
-    summary_spec = "Alternative 1 - using all CEM matches",
+    summary_spec = "Alternative 2 - using all CEM matches",
     summary_outcome = "Outcome 2",
     str_outcome = "o2_rate",
     labs_title = "Outcome 2: discharges achieving reliable recovery"
@@ -2981,7 +3104,7 @@ did <-
     .yearmon_scale_to = zoo::as.yearmon("Apr 2026"),
     .ods_treated = params$ods_intervention,
     str_treated = params$intervention_short_name,
-    summary_spec = "Alternative 2 - using September 2024 intervention",
+    summary_spec = "Alternative 3 - using September 2024 intervention",
     summary_outcome = "Outcome 1",
     str_outcome = "o1_rate",
     labs_title = "Outcome 1: discharges with 5+ treatment contacts"
@@ -2999,7 +3122,7 @@ did_meta <-
   dplyr::bind_rows(
     did_meta,
     tibble::tibble(
-      specification = "Synthdid alternative 2 (September 2024 intervention)",
+      specification = "Synthdid alternative 3 (September 2024 intervention)",
       outcome = "Outcome 1",
       estimate = as.numeric(did$did_estimate),
       se = did$did_se
@@ -3039,7 +3162,7 @@ did <-
     .yearmon_scale_to = zoo::as.yearmon("Apr 2026"),
     .ods_treated = params$ods_intervention,
     str_treated = params$intervention_short_name,
-    summary_spec = "Alternative 2 - using September 2024 intervention",
+    summary_spec = "Alternative 3 - using September 2024 intervention",
     summary_outcome = "Outcome 2",
     str_outcome = "o2_rate",
     labs_title = "Outcome 2: discharges achieving reliable recovery"
@@ -3057,7 +3180,7 @@ did_meta <-
   dplyr::bind_rows(
     did_meta,
     tibble::tibble(
-      specification = "Synthdid alternative 2 (September 2024 intervention)",
+      specification = "Synthdid alternative 3 (September 2024 intervention)",
       outcome = "Outcome 2",
       estimate = as.numeric(did$did_estimate),
       se = did$did_se
@@ -3068,6 +3191,178 @@ did_meta <-
 did$did_plot
 ```
 
+#### Using matches from both PSM and CEM
+
+What impact does using the matches returned from the propensity score matching (PSM) and coarsened exact matching (CEM) section have?
+
+```{r}
+#| label: synthdid - sensitivity both - outcome 1
+#| fig-height: 7
+#| warning: false
+#| cache: true
+#| eval: true
+
+set.seed(12345)
+
+df_test <-
+  df |>
+  interpolate_missing_month_outcomes_for_intervention_service(
+    .ods_intervention = "ANV01"
+  ) |>
+  interpolate_missing_month_outcomes_for_intervention_service(
+    .ods_intervention = "NGR01"
+  ) |>
+  interpolate_missing_month_outcomes_for_intervention_service(
+    .ods_intervention = "NNE"
+  ) |>
+  interpolate_missing_month_outcomes_for_intervention_service(
+    .ods_intervention = "RNUDT"
+  ) |>
+  interpolate_missing_month_outcomes_for_intervention_service(
+    .ods_intervention = "RNUDV"
+  ) |>
+  interpolate_missing_month_outcomes_for_intervention_service(
+    .ods_intervention = "RQY58"
+  ) |>
+  interpolate_missing_month_outcomes_for_intervention_service(
+    .ods_intervention = "RX34F"
+  ) |>
+  interpolate_missing_month_outcomes_for_intervention_service(
+    .ods_intervention = "RXX1Y"
+  )
+
+# get a did estimate
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df_test,
+    outcome = "o1_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = params$ods_intervention,
+    ods_controls = unique(c(
+      controls$psm_all,
+      controls$cem_all,
+      "ANV01",
+      "NGR01",
+      "NNE",
+      "RNUDT",
+      "RNUDV",
+      "RQY58",
+      "RX34F",
+      "RXX1Y"
+    )),
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .yearmon_scale_to = zoo::as.yearmon("Dec 2026"),
+    .ods_treated = params$ods_intervention,
+    str_treated = params$intervention_short_name,
+    summary_spec = "Alternative 4 - PSM and CEM matches",
+    summary_outcome = "Outcome 1",
+    str_outcome = "o1_rate",
+    labs_title = "Outcome 1: discharges with 5+ treatment contacts"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  dplyr::bind_rows(
+    did_meta,
+    tibble::tibble(
+      specification = "Synthdid alternative 4 (PSM & CEM controls)",
+      outcome = "Outcome 1",
+      estimate = as.numeric(did$did_estimate),
+      se = did$did_se
+    )
+  )
+
+# display the plot
+did$did_plot
+```
+
+
+```{r}
+#| label: synthdid - sensitivity both - outcome 2
+#| fig-height: 7
+#| warning: false
+#| cache: true
+#| eval: true
+
+set.seed(12345)
+
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df_test,
+    outcome = "o2_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = params$ods_intervention,
+    ods_controls = unique(c(
+      controls$psm_all,
+      controls$cem_all,
+      "ANV01",
+      "NGR01",
+      "NNE",
+      "RNUDT",
+      "RNUDV",
+      "RQY58",
+      "RX34F",
+      "RXX1Y"
+    )),
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .yearmon_scale_to = zoo::as.yearmon("Dec 2026"),
+    .ods_treated = params$ods_intervention,
+    str_treated = params$intervention_short_name,
+    summary_spec = "Alternative 4 - PSM and CEM matches",
+    summary_outcome = "Outcome 2",
+    str_outcome = "o2_rate",
+    labs_title = "Outcome 2: discharges achieving reliable recovery"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  dplyr::bind_rows(
+    did_meta,
+    tibble::tibble(
+      specification = "Synthdid alternative 4 (PSM & CEM controls)",
+      outcome = "Outcome 2",
+      estimate = as.numeric(did$did_estimate),
+      se = did$did_se
+    )
+  )
+
+# display the plot
+did$did_plot
+```
+
+
 #### Summary
 
 ```{r}
@@ -3075,6 +3370,7 @@ did$did_plot
 #| cache: true
 #| eval: true
 
+# update again
 did_overall |>
   display_did_summary_in_gt(sensitivity_summary = TRUE)
 

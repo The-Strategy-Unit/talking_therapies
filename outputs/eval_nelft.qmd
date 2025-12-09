@@ -1891,7 +1891,6 @@ The same matching variables selected from the multicollinearity optimisation pro
 #| cache: true
 #| eval: true
 
-
 # set the matching formula
 formula_matching <-
   formula(
@@ -1938,6 +1937,8 @@ The matched services found using using four cut-points are:
 #| fig-height: 8
 #| cache: true
 #| eval: true
+
+# update
 
 # extract the matched services to a var
 matches <- MatchIt::match_data(obj_matches)
@@ -1991,9 +1992,9 @@ We now assess the parallel trends for `r params$intervention_long_name` (shown i
 
 #### Whittington Health NHS Trust (RKE)
 
-**Outcome 1:** ❌ The trends are not parallel -  only one data point
+**Outcome 1:** ❌ The trends are not parallel -  they are divergent
 
-**Outcome 2:** ❌ The trends are not parallel -  only one data point
+**Outcome 2:** ❌ The trends are not parallel -  they are divergent
 
 ```{r}
 #| label: cem - warringon
@@ -2001,6 +2002,7 @@ We now assess the parallel trends for `r params$intervention_long_name` (shown i
 #| cache: true
 #| eval: true
 
+# update
 plot_list[[1]]
 ```
 
@@ -2016,6 +2018,7 @@ plot_list[[1]]
 #| cache: true
 #| eval: true
 
+# update
 plot_list[[2]]
 ```
 
@@ -2026,11 +2029,13 @@ A total of 2 Talking Therapy services were matched with `r params$intervention_l
 
 ```{r}
 #| label: cem - matches with parallel trends
-#| cache: false
-#| eval: false
+#| cache: true
+#| eval: true
+
+# update
 
 # list out the matches with parallel pre-intervention trends
-matches_parallel_ods <- c("NWC07")
+matches_parallel_ods <- c()
 
 # add these controls to a list for use in the synthetic control section
 controls <- c(
@@ -2042,16 +2047,16 @@ controls <- c(
 )
 
 # display these in a table
-matches |>
-  dplyr::filter(ods_code %in% matches_parallel_ods) |>
-  dplyr::select(name, ods_code) |>
-  dplyr::arrange(ods_code) |>
-  gt::gt() |>
-  gt::tab_options(quarto.disable_processing = TRUE) |>
-  gt::cols_label(
-    name = "Talking Therapies organisation",
-    ods_code = "ODS code"
-  )
+# matches |>
+#   dplyr::filter(ods_code %in% matches_parallel_ods) |>
+#   dplyr::select(name, ods_code) |>
+#   dplyr::arrange(ods_code) |>
+#   gt::gt() |>
+#   gt::tab_options(quarto.disable_processing = TRUE) |>
+#   gt::cols_label(
+#     name = "Talking Therapies organisation",
+#     ods_code = "ODS code"
+#   )
 ```
 
 ### Analysis
@@ -3052,6 +3057,131 @@ did$did_plot
 
 `r params$intervention_long_name`'s observed outcome was **0.2% lower** than the synthetic control expectation, and the 95% confidence interval (-0.5% to \<0%) does not include zero, so the result is **statistically significant**.
 
+#### Using matches from both PSM and CEM
+
+What impact does using the matches returned from the propensity score matching (PSM) and coarsened exact matching (CEM) section have?
+
+```{r}
+#| label: synthdid - sensitivity both - outcome 1
+#| fig-height: 7
+#| warning: false
+#| cache: true
+#| eval: true
+
+# update
+set.seed(12345)
+
+# get a did estimate
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df,
+    outcome = "o1_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = params$ods_intervention,
+    ods_controls = unique(c(controls$psm_all, controls$cem_all)),
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .yearmon_scale_to = zoo::as.yearmon("Dec 2026"),
+    .ods_treated = params$ods_intervention,
+    str_treated = params$intervention_short_name,
+    summary_spec = "Alternative 3 - PSM and CEM matches",
+    summary_outcome = "Outcome 1",
+    str_outcome = "o1_rate",
+    labs_title = "Outcome 1: discharges with 5+ treatment contacts"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  dplyr::bind_rows(
+    did_meta,
+    tibble::tibble(
+      specification = "Synthdid alternative 3 (PSM & CEM controls)",
+      outcome = "Outcome 1",
+      estimate = as.numeric(did$did_estimate),
+      se = did$did_se
+    )
+  )
+
+# display the plot
+did$did_plot
+```
+
+
+```{r}
+#| label: synthdid - sensitivity both - outcome 2
+#| fig-height: 7
+#| warning: false
+#| cache: true
+#| eval: true
+
+# update
+set.seed(12345)
+
+df_synth <-
+  prepare_df_for_synthdid(
+    df = df,
+    outcome = "o2_rate",
+    yearmon_period = .yearmon_period,
+    yearmon_intervention = .yearmon_intervention,
+    ods_treated = params$ods_intervention,
+    ods_controls = unique(c(controls$psm_all, controls$cem_all)),
+    df_intervention_services = df_intervention_services
+  )
+
+# get the did estimate, confidence intervals and plot
+did <-
+  delegate_synthdid_analysis(
+    df_synth = df_synth,
+    .yearmon_intervention = .yearmon_intervention,
+    .yearmon_period = .yearmon_period,
+    .yearmon_scale_to = zoo::as.yearmon("Dec 2026"),
+    .ods_treated = params$ods_intervention,
+    str_treated = params$intervention_short_name,
+    summary_spec = "Alternative 3 - PSM and CEM matches",
+    summary_outcome = "Outcome 2",
+    str_outcome = "o2_rate",
+    labs_title = "Outcome 2: discharges achieving reliable recovery"
+  )
+
+# add these findings to a combined summary (for sensitivity analysis)
+did_overall <-
+  dplyr::bind_rows(
+    did_overall,
+    did$did_summary
+  )
+
+# add details to a summary of ALL analyses in this document for selection for a subsequent meta analysis
+did_meta <-
+  dplyr::bind_rows(
+    did_meta,
+    tibble::tibble(
+      specification = "Synthdid alternative 3 (PSM & CEM controls)",
+      outcome = "Outcome 2",
+      estimate = as.numeric(did$did_estimate),
+      se = did$did_se
+    )
+  )
+
+# display the plot
+did$did_plot
+```
+
+
 #### Summary
 
 ```{r}
@@ -3059,6 +3189,7 @@ did$did_plot
 #| cache: true
 #| eval: true
 
+# update again
 did_overall |>
   display_did_summary_in_gt(sensitivity_summary = TRUE)
 
