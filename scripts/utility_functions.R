@@ -2633,6 +2633,22 @@ conduct_meta_analysis <- function(
       .outcome = .outcome,
       .matching = .matching
     )
+
+    # add details to a summary
+    list_summary_table <<- append(
+      list_summary_table,
+      extract_meta_details(
+        .meta = meta_analysis,
+        .outcome = .outcome,
+        .method = dplyr::case_match(
+          .matching,
+          "psm" ~ "PSM DiD",
+          "cem" ~ "CEM DiD",
+          "synthdid" ~ "Synthetic DiD"
+        )
+      ) |>
+        list()
+    )
   } else {
     # subgroup analysis --
 
@@ -2903,4 +2919,90 @@ prop_to_text <- function(p) {
     )
 
   return(text)
+}
+
+#' Extract details from the meta analysis
+#'
+#' @param .meta object from `conduct_meta_analysis()`
+#' @param .outcome character - the Outcome measure
+#' @param .methoc character - the method used to produce the counterfactual
+#'
+#' @returns Tibble details extracted from the meta analysis
+#'
+extract_meta_details <- function(
+  .meta,
+  .outcome = c("Outcome 1", "Outcome 2"),
+  .method = c("PSM DiD", "CEM DiD", "Synthetic DiD")
+) {
+  # validate inputs
+  match.arg(.outcome)
+  match.arg(.method)
+
+  # combine these to a tibble
+  tibble::tibble(
+    setting = .meta$studlab,
+    method = .method,
+    outcome = .outcome,
+    effect = .meta$TE,
+    ci_l = .meta$lower,
+    ci_u = .meta$upper,
+    p_val = .meta$pval
+  )
+}
+
+#' Display the summary table as a {gt} object
+#'
+#' @param .list_summary_table list where each element is a tibble containing meta-analysis details
+#'
+#' @returns {gt} table summarising the results
+#'
+get_gt_summary_table <- function(.list_summary_table) {
+  .list_summary_table |>
+    # bind the elements together to a single tibble
+    dplyr::bind_rows() |>
+    # sort the data
+    dplyr::arrange(setting, outcome, method) |>
+    # group the data
+    dplyr::group_by(setting) |>
+    # produce the {gt} table
+    gt::gt(row_group_as_column = TRUE) |>
+    gt::tab_options(quarto.disable_processing = TRUE) |>
+    gt::fmt_percent(
+      columns = c(effect, ci_l, ci_u),
+      decimals = 2
+    ) |>
+    # format columns
+    gt::fmt(
+      columns = c(p_val),
+      fns = \(.x) prettyunits::pretty_p_value(x = .x, minval = 0.001)
+    ) |>
+    gt::tab_style(
+      style = list(gt::cell_text(weight = "bold")),
+      locations = gt::cells_body(
+        columns = c(effect, ci_l, ci_u, p_val),
+        rows = p_val <= 0.05
+      )
+    ) |>
+    # column labels
+    gt::cols_label(
+      method = "Method (DiD variant)",
+      outcome = "Outcome measure",
+      effect = "Effect estimate",
+      ci_l = "95% Confidence Interval",
+      p_val = "p-value"
+    ) |>
+    # merge confidence interval columns
+    gt::cols_merge_range(
+      col_begin = ci_l,
+      col_end = ci_u,
+      sep = " to "
+    ) |>
+    # add a title to the table
+    gt::tab_header(
+      title = "Summary results table"
+    ) |>
+    # add a footnote to explain formatting
+    gt::tab_source_note(gt::md(
+      "Statistically significant findings are shown in **bold**"
+    ))
 }
