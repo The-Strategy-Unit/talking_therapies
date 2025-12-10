@@ -86,6 +86,9 @@ df_meta <-
     )
   )
 
+# initialise the summary table (will hold the extracted details from each meta analysis)
+list_summary_table <- list()
+
 ```
 
 # About
@@ -192,6 +195,7 @@ df_meta |>
 ```{r}
 #| label: outcome 1 - psm - analysis
 
+# conduct the analysis
 meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = NULL,
@@ -199,6 +203,15 @@ meta <- conduct_meta_analysis(
   .matching = "psm",
   .model_main = "main"
 )
+# # add details to a summary
+# list_summary_table <- append(
+#   list_summary_table,
+#   extract_meta_details(
+#     .meta = meta,
+#     .outcome = "Outcome 1",
+#     .method = "PSM DiD"
+#   )
+# )
 ```
 
 ::: panel-tabset
@@ -439,6 +452,42 @@ meta$analysis
 
 :::
 
+### Synthetic DiD (SynthDiD) using matched cohort
+
+```{r}
+#| label: outcome 2 - synth_matched - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = NULL,
+  .outcome = "Outcome 2",
+  .matching = "synthdid",
+  .model_main = "(PSM & CEM controls)"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: outcome 2 - synth_matched - forest
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: outcome 2 - synth_matched - details
+meta$analysis
+```
+
+:::
+
 # Subgroup - Component
 
 ## Outcome 1
@@ -554,6 +603,42 @@ meta$analysis
 
 :::
 
+### Synthetic DiD (SynthDiD) using matched cohort
+
+```{r}
+#| label: subgroup 1 - outcome 1 - synth_matched - analysis
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = "sub_component",
+  .outcome = "Outcome 1",
+  .matching = "synthdid",
+  .model_main = "(PSM & CEM controls)"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup 1 - outcome 1 - synth_matched - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup 1 - outcome 1 - synth_matched - details
+meta$analysis
+```
+
+:::
+
 ## Outcome 2
 
 ### Propensity Score Matching (PSM)
@@ -576,7 +661,7 @@ meta <- conduct_meta_analysis(
 
 ```{r}
 #| label: subgroup 1  - outcome 2 - psm - forest
-#| fig-height: 5
+#| fig-height: 6
 meta$analysis |> display_forest_plot()
 ```
 
@@ -667,6 +752,41 @@ meta$analysis
 
 :::
 
+### Synthetic DiD (SynthDiD) using matched cohort
+
+```{r}
+#| label: subgroup 1 - outcome 2 - synth_matched - analysis
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = "sub_component",
+  .outcome = "Outcome 2",
+  .matching = "synthdid",
+  .model_main = "(PSM & CEM controls)"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup 1 - outcome 2 - synth_matched - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup 1 - outcome 2 - synth_matched - details
+meta$analysis
+```
+
+:::
 
 # Subgroup - Target
 
@@ -778,6 +898,42 @@ meta$analysis |> display_forest_plot()
 
 ```{r}
 #| label: subgroup 2 - outcome 1 - synth - details
+meta$analysis
+```
+
+:::
+
+### Synthetic DiD (SynthDiD) using matched cohort
+
+```{r}
+#| label: subgroup 2 - outcome 1 - synth_matched - analysis
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = "sub_targetgroup",
+  .outcome = "Outcome 1",
+  .matching = "synthdid",
+  .model_main = "(PSM & CEM controls)"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup 2 - outcome 1 - synth_matched - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup 2 - outcome 1 - synth_matched - details
 meta$analysis
 ```
 
@@ -896,3 +1052,46 @@ meta$analysis
 
 :::
 
+### Synthetic DiD (SynthDiD) using matched cohort
+
+```{r}
+#| label: subgroup 2 - outcome 2 - synth_matched - analysis
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = "sub_targetgroup",
+  .outcome = "Outcome 2",
+  .matching = "synthdid",
+  .model_main = "(PSM & CEM controls)"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup 2 - outcome 2 - synth_matched - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup 2 - outcome 2 - synth_matched - details
+meta$analysis
+```
+
+:::
+
+
+# Summary table
+
+
+```{r}
+get_gt_summary_table(list_summary_table)
+```
