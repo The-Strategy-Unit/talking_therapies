@@ -3098,6 +3098,7 @@ What impact does using the matches returned from the propensity score matching (
 #| cache: true
 #| eval: true
 
+# update
 set.seed(12345)
 
 # get a did estimate
@@ -3158,6 +3159,7 @@ did$did_plot
 #| cache: true
 #| eval: true
 
+# update
 set.seed(12345)
 
 df_synth <-
@@ -3217,7 +3219,7 @@ did$did_plot
 #| cache: true
 #| eval: true
 
-# update
+# update again
 did_overall |>
   display_did_summary_in_gt(sensitivity_summary = TRUE)
 

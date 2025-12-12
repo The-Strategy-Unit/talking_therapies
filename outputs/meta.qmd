@@ -13,7 +13,7 @@ format:
     embed-resources: true
     fig-format: png
     fig-width: 10
-    fig-height: 3
+    fig-height: 4
     fig-dpi: 600
     default-image-extension: svg
     lightbox: true
@@ -46,7 +46,14 @@ df_meta <-
         # string = specification,
         pattern = "psm|cem|synthdid"
       ),
-    model_main = stringr::str_detect(string = specification, pattern = "main")
+    model_main = dplyr::case_when(
+      stringr::str_detect(string = specification, pattern = "main") ~ "main",
+      stringr::str_detect(
+        string = specification,
+        pattern = "(PSM & CEM controls)"
+      ) ~ "(PSM & CEM controls)",
+      .default = NA
+    )
   )
 
 ## TODO
@@ -78,6 +85,9 @@ df_meta <-
       false = name_full
     )
   )
+
+# initialise the summary table (will hold the extracted details from each meta analysis)
+list_summary_table <- list()
 
 ```
 
@@ -185,12 +195,23 @@ df_meta |>
 ```{r}
 #| label: outcome 1 - psm - analysis
 
+# conduct the analysis
 meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = NULL,
   .outcome = "Outcome 1",
-  .matching = "psm"
+  .matching = "psm",
+  .model_main = "main"
 )
+# # add details to a summary
+# list_summary_table <- append(
+#   list_summary_table,
+#   extract_meta_details(
+#     .meta = meta,
+#     .outcome = "Outcome 1",
+#     .method = "PSM DiD"
+#   )
+# )
 ```
 
 ::: panel-tabset
@@ -224,7 +245,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = NULL,
   .outcome = "Outcome 1",
-  .matching = "cem"
+  .matching = "cem",
+  .model_main = "main"
 )
 ```
 
@@ -259,7 +281,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = NULL,
   .outcome = "Outcome 1",
-  .matching = "synthdid"
+  .matching = "synthdid",
+  .model_main = "main"
 )
 ```
 
@@ -285,6 +308,42 @@ meta$analysis
 
 :::
 
+### Synthetic DiD (SynthDiD) using matched cohort
+
+```{r}
+#| label: outcome 1 - synth_matched - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = NULL,
+  .outcome = "Outcome 1",
+  .matching = "synthdid",
+  .model_main = "(PSM & CEM controls)"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: outcome 1 - synth_matched - forest
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: outcome 1 - synth_matched - details
+meta$analysis
+```
+
+:::
+
 ## Outcome 2
 
 ### Propensity Score Matching (PSM)
@@ -296,7 +355,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = NULL,
   .outcome = "Outcome 2",
-  .matching = "psm"
+  .matching = "psm",
+  .model_main = "main"
 )
 ```
 
@@ -330,7 +390,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = NULL,
   .outcome = "Outcome 2",
-  .matching = "cem"
+  .matching = "cem",
+  .model_main = "main"
 )
 ```
 
@@ -364,7 +425,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = NULL,
   .outcome = "Outcome 2",
-  .matching = "synthdid"
+  .matching = "synthdid",
+  .model_main = "main"
 )
 ```
 
@@ -390,7 +452,43 @@ meta$analysis
 
 :::
 
-# Subgroup analysis - Component
+### Synthetic DiD (SynthDiD) using matched cohort
+
+```{r}
+#| label: outcome 2 - synth_matched - analysis
+
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = NULL,
+  .outcome = "Outcome 2",
+  .matching = "synthdid",
+  .model_main = "(PSM & CEM controls)"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: outcome 2 - synth_matched - forest
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: outcome 2 - synth_matched - details
+meta$analysis
+```
+
+:::
+
+# Subgroup - Component
 
 ## Outcome 1
 
@@ -403,7 +501,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = "sub_component",
   .outcome = "Outcome 1",
-  .matching = "psm"
+  .matching = "psm",
+  .model_main = "main"
 )
 ```
 
@@ -439,7 +538,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = "sub_component",
   .outcome = "Outcome 1",
-  .matching = "cem"
+  .matching = "cem",
+  .model_main = "main"
 )
 ```
 
@@ -475,7 +575,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = "sub_component",
   .outcome = "Outcome 1",
-  .matching = "synthdid"
+  .matching = "synthdid",
+  .model_main = "main"
 )
 ```
 
@@ -502,6 +603,42 @@ meta$analysis
 
 :::
 
+### Synthetic DiD (SynthDiD) using matched cohort
+
+```{r}
+#| label: subgroup 1 - outcome 1 - synth_matched - analysis
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = "sub_component",
+  .outcome = "Outcome 1",
+  .matching = "synthdid",
+  .model_main = "(PSM & CEM controls)"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup 1 - outcome 1 - synth_matched - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup 1 - outcome 1 - synth_matched - details
+meta$analysis
+```
+
+:::
+
 ## Outcome 2
 
 ### Propensity Score Matching (PSM)
@@ -513,7 +650,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = "sub_component",
   .outcome = "Outcome 2",
-  .matching = "psm"
+  .matching = "psm",
+  .model_main = "main"
 )
 ```
 
@@ -522,8 +660,8 @@ meta <- conduct_meta_analysis(
 ### Forest plot
 
 ```{r}
-#| label: subgroup1  - outcome 2 - psm - forest
-#| fig-height: 5
+#| label: subgroup 1  - outcome 2 - psm - forest
+#| fig-height: 6
 meta$analysis |> display_forest_plot()
 ```
 
@@ -549,7 +687,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = "sub_component",
   .outcome = "Outcome 2",
-  .matching = "cem"
+  .matching = "cem",
+  .model_main = "main"
 )
 ```
 
@@ -585,7 +724,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = "sub_component",
   .outcome = "Outcome 2",
-  .matching = "synthdid"
+  .matching = "synthdid",
+  .model_main = "main"
 )
 ```
 
@@ -612,8 +752,43 @@ meta$analysis
 
 :::
 
+### Synthetic DiD (SynthDiD) using matched cohort
 
-# Subgroup analysis - Target
+```{r}
+#| label: subgroup 1 - outcome 2 - synth_matched - analysis
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = "sub_component",
+  .outcome = "Outcome 2",
+  .matching = "synthdid",
+  .model_main = "(PSM & CEM controls)"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup 1 - outcome 2 - synth_matched - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup 1 - outcome 2 - synth_matched - details
+meta$analysis
+```
+
+:::
+
+# Subgroup - Target
 
 ## Outcome 1
 
@@ -626,7 +801,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = "sub_targetgroup",
   .outcome = "Outcome 1",
-  .matching = "psm"
+  .matching = "psm",
+  .model_main = "main"
 )
 ```
 
@@ -662,7 +838,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = "sub_targetgroup",
   .outcome = "Outcome 1",
-  .matching = "cem"
+  .matching = "cem",
+  .model_main = "main"
 )
 ```
 
@@ -698,7 +875,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = "sub_targetgroup",
   .outcome = "Outcome 1",
-  .matching = "synthdid"
+  .matching = "synthdid",
+  .model_main = "main"
 )
 ```
 
@@ -725,6 +903,42 @@ meta$analysis
 
 :::
 
+### Synthetic DiD (SynthDiD) using matched cohort
+
+```{r}
+#| label: subgroup 2 - outcome 1 - synth_matched - analysis
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = "sub_targetgroup",
+  .outcome = "Outcome 1",
+  .matching = "synthdid",
+  .model_main = "(PSM & CEM controls)"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup 2 - outcome 1 - synth_matched - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup 2 - outcome 1 - synth_matched - details
+meta$analysis
+```
+
+:::
+
 ## Outcome 2
 
 ### Propensity Score Matching (PSM)
@@ -736,7 +950,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = "sub_targetgroup",
   .outcome = "Outcome 2",
-  .matching = "psm"
+  .matching = "psm",
+  .model_main = "main"
 )
 ```
 
@@ -772,7 +987,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = "sub_targetgroup",
   .outcome = "Outcome 2",
-  .matching = "cem"
+  .matching = "cem",
+  .model_main = "main"
 )
 ```
 
@@ -808,7 +1024,8 @@ meta <- conduct_meta_analysis(
   .df = df_meta,
   .subgroup = "sub_targetgroup",
   .outcome = "Outcome 2",
-  .matching = "synthdid"
+  .matching = "synthdid",
+  .model_main = "main"
 )
 ```
 
@@ -835,3 +1052,46 @@ meta$analysis
 
 :::
 
+### Synthetic DiD (SynthDiD) using matched cohort
+
+```{r}
+#| label: subgroup 2 - outcome 2 - synth_matched - analysis
+meta <- conduct_meta_analysis(
+  .df = df_meta,
+  .subgroup = "sub_targetgroup",
+  .outcome = "Outcome 2",
+  .matching = "synthdid",
+  .model_main = "(PSM & CEM controls)"
+)
+```
+
+::: panel-tabset
+
+### Forest plot
+
+```{r}
+#| label: subgroup 2 - outcome 2 - synth_matched - forest
+#| fig-height: 5
+meta$analysis |> display_forest_plot()
+```
+
+### Description
+
+`r meta$description`
+
+### Details
+
+```{r}
+#| label: subgroup 2 - outcome 2 - synth_matched - details
+meta$analysis
+```
+
+:::
+
+
+# Summary table
+
+
+```{r}
+get_gt_summary_table(list_summary_table)
+```
