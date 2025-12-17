@@ -2640,11 +2640,18 @@ conduct_meta_analysis <- function(
       extract_meta_details(
         .meta = meta_analysis,
         .outcome = .outcome,
-        .method = dplyr::case_match(
-          .matching,
-          "psm" ~ "PSM DiD",
-          "cem" ~ "CEM DiD",
-          "synthdid" ~ "Synthetic DiD"
+        # .method = dplyr::case_match(
+        #   .matching,
+        #   "psm" ~ "PSM DiD",
+        #   "cem" ~ "CEM DiD",
+        #   "synthdid" ~ "Synthetic DiD"
+        # )
+        .method = dplyr::case_when(
+          .matching == "psm" ~ "PSM DiD",
+          .matching == "cem" ~ "CEM DiD",
+          .matching == "synthdid" & .model_main == "main" ~ "Synthetic DiD 1",
+          .matching == "synthdid" &
+            .model_main == "(PSM & CEM controls)" ~ "Synthetic DiD 2"
         )
       ) |>
         list()
@@ -2932,7 +2939,7 @@ prop_to_text <- function(p) {
 extract_meta_details <- function(
   .meta,
   .outcome = c("Outcome 1", "Outcome 2"),
-  .method = c("PSM DiD", "CEM DiD", "Synthetic DiD")
+  .method = c("PSM DiD", "CEM DiD", "Synthetic DiD 1", "Synthetic DiD 2")
 ) {
   # validate inputs
   match.arg(.outcome)
@@ -3005,4 +3012,93 @@ get_gt_summary_table <- function(.list_summary_table) {
     gt::tab_source_note(gt::md(
       "Statistically significant findings are shown in **bold**"
     ))
+}
+
+
+#' Rank services over each of the counterfactual models
+#'
+#' @description
+#' Ranks each service against each of the four counterfactual methods, then counts the number of times each service appears in the .top-n rank. Finally, highlights those that appears .n_top_tier_threshold times.
+#'
+#' @param .list_summary_table List of summary tables
+#' @param .outcome Character the name of the outcome variable (either 'Outcome 1' or 'Outcome 2')
+#' @param .top_n Integer threshold used to identify whether services are top ranked (default = 3)
+#' @param .n_top_tier_threshold Integer threshold used to identify how many methods to consider a service to appear top-ranked.
+#'
+#' @returns {gt}
+#'
+rank_service_over_models <- function(
+  .list_summary_table,
+  .outcome = c("Outcome 1", "Outcome 2"),
+  .top_n = 3L,
+  .n_top_tier_threshold = 2L
+) {
+  # prepare the data
+  df <-
+    .list_summary_table |>
+    # bind the elements together to a single tibble
+    dplyr::bind_rows() |>
+    # order data
+    dplyr::arrange(outcome, method, dplyr::desc(effect)) |>
+    # calculate the rank per outcome and method
+    dplyr::mutate(
+      outcome_method_rank = dplyr::row_number(),
+      .by = c(outcome, method)
+    ) |>
+    # count how many times the service appears in the top-tier
+    dplyr::mutate(
+      top_tier = outcome_method_rank <= .top_n,
+      n_top_tier = sum(top_tier),
+      .by = c(setting, outcome)
+    ) |>
+    # pivot wider to give a row per service per outcome
+    dplyr::select(setting, method, outcome, outcome_method_rank, n_top_tier) |>
+    dplyr::arrange(outcome, dplyr::desc(n_top_tier)) |>
+    tidyr::pivot_wider(
+      names_from = method,
+      values_from = outcome_method_rank
+    ) |>
+    dplyr::relocate(n_top_tier, .after = dplyr::everything())
+
+  # display the results as a {gt} table
+  tab <-
+    df |>
+    dplyr::filter(outcome == .outcome) |>
+    gt::gt() |>
+    gt::tab_options(quarto.disable_processing = TRUE) |>
+    gt::sub_missing() |>
+    # show services selected in bold
+    gt::tab_style(
+      style = list(gt::cell_text(weight = "bold")),
+      locations = gt::cells_body(
+        columns = c(n_top_tier, setting),
+        rows = n_top_tier >= .n_top_tier_threshold
+      )
+    ) |>
+    # label columns
+    gt::cols_label(
+      setting = "Talking Therapy service",
+      outcome = "Outcome",
+      n_top_tier = glue::glue("Number of times in the top {.top_n}")
+    ) |>
+    # span the methods
+    gt::tab_spanner(
+      columns = gt::contains("DiD"),
+      label = "Counterfactual method"
+    ) |>
+    # add a title
+    gt::tab_header(
+      title = .outcome,
+      subtitle = "Rank of each Talking Therapy service's point estimate in each of the four counterfactual methods."
+    ) |>
+    # add a footer to explain the numbers
+    gt::tab_caption(
+      caption = gt::md(
+        glue::glue(
+          "Services that rank in the top {.top_n} in at least {.n_top_tier_threshold} counterfactual methods are shown in **bold**."
+        )
+      )
+    )
+
+  return(tab)
 }
