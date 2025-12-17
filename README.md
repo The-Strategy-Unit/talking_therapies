@@ -6,19 +6,191 @@ width="500" />
 
 # NHS Talking Therapies
 
+## Quantitative evaluation of adherence-improving interventions
+
+This repository contains the full analytical codebase for the
+quantitative components of an independent evaluation commissioned by the
+NHSE Behavioural Science Unit. The evaluation examines whether locally
+implemented interventions within NHS Talking Therapies services improve
+patient adherence, specifically, whether they reduce the proportion of
+patients who complete a course of treatment but disengage after only
+two, three or four sessions.
+
+## NHS Talking Therapies
+
 NHS Talking Therapies for anxiety and depression offers psychological
-support for common mental health problems. Examples of treatments
-include cognitive-behavioural therapy (CBT) and counselling.
+support for common mental health problems. Ttreatments include
+cognitive-behavioural therapy (CBT) and counselling and other
+evidence-based interventions.
 
 In 2023-24, 53% of referrals that started treatment **completed a
-course** of treatment. Completing a course of treatment is defined as
-attending a minimum of *two* sessions (which can include psychological
-assessment and treatment).
+course** of treatment. A completed course is defined as attending a
+minimum of *two* sessions (including assessment and treatment).
 
-The recovery standard for NHS Talking Therapies is that 50% of patients
-**achieve reliable recovery**. This standard is achieved by patients
-attending at least *five* treatment sessions.
+The national recovery is that **50% of patients achieve reliable
+recovery**, which typically requires attending at least *five* treatment
+sessions.
 
-The focus of this evaluation is to explore initiatives designed to
-reduce the proportion of patients who complete a course of treatment,
-but attend only two, three or four sessions.
+This evaluation focused on initiatives designed to reduce the proportion
+of patients who complete a course of treatment but attend only two,
+three or four sessions.
+
+## About this repository
+
+This repository documents the full analytical workflow used to assess
+the effectiveness of adherence-focused interventions across multiple
+services. It includes:
+
+- Python code used within the UDAL environment to construct outcome and
+  matching variables from the IAPT dataset
+
+- Service-level analyses using propensity score matching (PSM),
+  coarsened exact matching (CEM) and synthetic difference-in-differences
+  (Synthetic DiD) approaches
+
+- Sensitivity analyses exploring the robustness of findings
+
+- Meta-analyses combining service-level estimates to produce overall
+  treatment effects.
+
+## Aim of the evaluation
+
+The NHSE Behavioural Science Unit commissioned The Strategy Unit to
+conduct an independent evaluation of interventions by local NHS Talking
+Therapies to improve adherence.
+
+Service selection was informed by previous work undertaken by the
+Behavioural Science Unit.
+
+The evaluation aimed to build on this earlier work by developing deeper
+understanding of the interventions used to improve adherence and
+engagement. The key evaluation questions were:
+
+1.  What interventions are NHS Talking Therapies services using to
+    increase engagement with services?
+
+2.  Are these interventions effective (compared to business as usual) in
+    reducing the proportion of instances where patients complete a
+    course of treatment, but disengage after only two, three or four
+    treatment sessions?
+
+This repository concerns the quantitative evaluation, which primarily
+addresses the second question.
+
+## Install dependencies
+
+The following code scans for all package dependencies used in the
+project and installs them from CRAN or GitHub as appropriate.
+
+``` r
+# source functions
+source(here::here("scripts", "utility_functions.R"))
+
+# scan for dependencies
+deps <- scan_for_dependencies()
+
+# list dependencies installed from GitHub
+deps_gh <- c("StrategyUnitTheme", "synthdid", "stats")
+deps_gh_install <- c(
+  "The-Strategy-Unit/StrategyUnitTheme",
+  "synth-inference/synthdid"
+)
+
+# list dependencies not on GitHub
+deps_cran <- deps[!deps %in% deps_gh]
+
+# install dependencies from CRAN
+purrr::walk(
+  .x = deps_cran,
+  .f = \(.x) {
+    print(.x)
+    pak::pak(.x)
+  }
+)
+
+# install dependencies from GitHub
+purrr::walk(
+  .x = deps_gh_install,
+  .f = \(.x) {
+    print(.x)
+    pak::pak(.x)
+  }
+)
+```
+
+# Contents
+
+This repository contains the full set of analytical codebase used in the
+quantitative evaluation. Key documents are outlined below.
+
+## Background
+
+`outputs/evaluation_framework.qmd`
+
+This file summarises the preliminary research including:
+
+- the initial evaluation outline
+
+- background reading
+
+- scoping potential matching variables
+
+- scoping potential outcome variables
+
+- glossary of key terms
+
+## Gathering outcome and matching variables
+
+Data were sourced from the IAPT dataset via the [Unified Data Access
+Layer
+(UDAL)](https://www.england.nhs.uk/contact-us/privacy-notice/data-analytics/).
+
+`databricks/Talking Therapies.ipynb`
+
+This PySpark notebook was designed to run within the UDAL environment
+using the Databricks engine. It documents:
+
+- exploration of the data held within the IAPT dataset
+
+- data quality assessment
+
+- construction of the matching and outcome variables
+
+**No data are stored in this repository.**
+
+## Service analysis files
+
+Each service was analysed separately:
+
+    outputs 
+     ⌊ eval_bradford.qmd
+     ⌊ eval_cornwall.qmd
+     ⌊ eval_devon.qmd
+     ⌊ eval_hampshire.qmd
+     ⌊ eval_kent.qmd
+     ⌊ eval_nelft.qmd
+     ⌊ eval_talkplus_nehants.qmd
+     ⌊ eval_tower_hamlets.qmd
+     ⌊ eval_yorkshire.qmd
+
+Each Quarto file documents:
+
+- optimisation of covariate balance for matching
+
+- matching using propensity score matching (PSM) and coarsened exact
+  matching (CEM)
+
+- assessment of pre-intervention parallel trends
+
+- difference-in-differences (DiD) analyses using PSM and CEM and two
+  synthetic control variants (restricted and unrestricted donor pools)
+
+- sensitivity analyses examining the robustness of findings
+
+## Meta analysis
+
+`outputs/meta.qmd`
+
+This document synthesises the service-level results using a
+random-effects meta-analysis to produce a more precise estimate of the
+overall treatment effect for both outcome measures.
