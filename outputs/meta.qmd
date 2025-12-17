@@ -1091,7 +1091,12 @@ meta$analysis
 
 # Summary table
 
-
 ```{r}
 get_gt_summary_table(list_summary_table)
+```
+
+# Cross-model ranking of service performance
+```{r}
+list_summary_table |> rank_service_over_models(.outcome = "Outcome 1")
+list_summary_table |> rank_service_over_models(.outcome = "Outcome 2")
 ```
